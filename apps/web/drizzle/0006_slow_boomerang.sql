@@ -1,0 +1,1 @@
+ALTER TABLE "availability" DROP COLUMN "is_available";

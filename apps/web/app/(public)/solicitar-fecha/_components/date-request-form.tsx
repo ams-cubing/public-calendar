@@ -36,6 +36,8 @@ import { cn } from "@workspace/ui/lib/utils";
 import { submitDateRequest } from "../_actions/submit-date-request";
 import { toast } from "sonner";
 import { es } from "react-day-picker/locale";
+import { useSearchParams } from "next/navigation";
+import type { DateRange } from "react-day-picker";
 
 const dateRequestSchema = z
   .object({
@@ -86,26 +88,48 @@ const MEXICAN_STATES = [
   { id: "ZAC", name: "Zacatecas" },
 ];
 
-export function DateRequestForm() {
+export function DateRequestForm({
+  unavailableDates,
+}: {
+  unavailableDates: Date[];
+}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const searchParams = useSearchParams();
+
+  const date = searchParams.get("fecha");
+
+  const minDate = addWeeks(new Date(), 5);
+  const maxDate = addMonths(new Date(), 6);
+
+  const initialDate = date
+    ? (() => {
+        const [year, month, day] = date.split("-").map(Number);
+        const parsedDate = new Date(year!, month! - 1, day);
+
+        // Validate that the date is within the allowed range
+        if (parsedDate < minDate || parsedDate > maxDate) {
+          return undefined;
+        }
+
+        return parsedDate;
+      })()
+    : undefined;
 
   const form = useForm<DateRequestFormValues>({
     resolver: zodResolver(dateRequestSchema),
     defaultValues: {
-      city: "",
-      stateId: "",
+      city: undefined,
+      stateId: undefined,
+      startDate: initialDate,
+      endDate: initialDate,
     },
   });
-  
-  const minDate = addWeeks(addMonths(new Date(), 1), 1);
-  const maxDate = addMonths(new Date(), 6);
 
   async function onSubmit(data: DateRequestFormValues) {
     setIsSubmitting(true);
     try {
       const result = await submitDateRequest(data);
-
-      console.log("Result:", result);
 
       if (result.success) {
         toast.success(result.message || "Solicitud enviada exitosamente");
@@ -123,138 +147,111 @@ export function DateRequestForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="city"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ciudad</FormLabel>
-              <FormControl>
-                <Input placeholder="Guadalajara" {...field} />
-              </FormControl>
-              <FormDescription>
-                Ciudad donde se realizará la competencia
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="stateId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem className="flex flex-col items-start">
+                <FormLabel>Ciudad</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un estado" />
-                  </SelectTrigger>
+                  <Input placeholder="Guadalajara" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {MEXICAN_STATES.map((state) => (
-                    <SelectItem key={state.id} value={state.id}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                El delegado será asignado automáticamente según el estado
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Fecha de Inicio</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+          <FormField
+            control={form.control}
+            name="stateId"
+            render={({ field }) => (
+              <FormItem className="flex flex-col items-start">
+                <FormLabel>Estado</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: es })
-                      ) : (
-                        <span>Selecciona una fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un estado" />
+                    </SelectTrigger>
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < minDate ||
-                      date > maxDate
-                    }
-                    autoFocus
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <SelectContent>
+                    {MEXICAN_STATES.map((state) => (
+                      <SelectItem key={state.id} value={state.id}>
+                        {state.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="endDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Fecha de Fin</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: es })
-                      ) : (
-                        <span>Selecciona una fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < minDate ||
-                      date > maxDate
-                    }
-                    autoFocus
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem className="flex flex-col">
+          <FormLabel>Fechas</FormLabel>
+          <Popover>
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  data-invalid={
+                    !!form.formState.errors.startDate ||
+                    !!form.formState.errors.endDate
+                  }
+                  className={cn(
+                    "w-full pl-3 text-left font-normal data-[invalid=true]:ring-2 data-[invalid=true]:ring-destructive/20 dark:data-[invalid=true]:ring-destructive/40 data-[invalid=true]:border-destructive",
+                    !form.watch("startDate") && "text-muted-foreground",
+                  )}
+                >
+                  {form.watch("startDate") && form.watch("endDate") ? (
+                    <>
+                      {format(form.watch("startDate"), "PPP", { locale: es })} -{" "}
+                      {format(form.watch("endDate"), "PPP", { locale: es })}
+                    </>
+                  ) : (
+                    <span>Selecciona la fecha</span>
+                  )}
+                  <CalendarIcon className="ml-auto opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={{
+                  from: form.watch("startDate"),
+                  to: form.watch("endDate"),
+                }}
+                onSelect={(range: DateRange | undefined) => {
+                  if (range?.from) {
+                    form.setValue("startDate", range.from);
+                  }
+                  if (range?.to) {
+                    form.setValue("endDate", range.to);
+                  }
+                }}
+                disabled={(date) => date < minDate || date > maxDate}
+                modifiers={{
+                  unavailable: unavailableDates,
+                }}
+                modifiersClassNames={{
+                  unavailable: "[&>button]:line-through opacity-100",
+                }}
+                autoFocus
+                locale={es}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          <FormMessage>
+            {form.formState.errors.startDate?.message ||
+              form.formState.errors.endDate?.message}
+          </FormMessage>
+        </FormItem>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Enviando..." : "Enviar Solicitud"}

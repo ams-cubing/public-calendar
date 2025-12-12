@@ -11,23 +11,30 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
+import { useRouter } from "next/navigation";
+import { addWeeks } from "date-fns";
+import { getFeriados } from "mx-feriados";
+import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
 
 interface Competition {
   id: number;
   name: string | null;
   city: string;
   stateId: string;
-  primaryDelegateId: string | null;
+  requestedBy: string | null;
+  trelloUrl: string | null;
   startDate: string;
   endDate: string;
   statusPublic:
-  | "open"
-  | "reserved"
-  | "confirmed"
-  | "announced"
-  | "suspended"
-  | "unavailable";
+    | "open"
+    | "reserved"
+    | "confirmed"
+    | "announced"
+    | "suspended"
+    | "unavailable";
   statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
+  createdAt: Date;
+  updatedAt: Date;
   state: {
     id: string;
     name: string;
@@ -49,6 +56,7 @@ export function CalendarView({ competitions }: CalendarViewProps) {
   const [selectedCompetition, setSelectedCompetition] =
     useState<Competition | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -57,6 +65,23 @@ export function CalendarView({ competitions }: CalendarViewProps) {
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+  const minDate = addWeeks(new Date(), 5);
+  const maxDate = addWeeks(new Date(), 27);
+
+  const holidays = getFeriados(year);
+
+  // Add this helper function
+  const getHolidayForDay = (day: number) => {
+    return holidays.find((holiday) => {
+      const holidayDate = new Date(holiday.fechaObservada);
+      return (
+        holidayDate.getDate() === day &&
+        holidayDate.getMonth() === month &&
+        holidayDate.getFullYear() === year
+      );
+    });
+  };
 
   const previousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -98,16 +123,17 @@ export function CalendarView({ competitions }: CalendarViewProps) {
     });
   };
 
-  const getStatusLabel = (status: Competition["statusPublic"]) => {
-    const labels = {
-      open: "Abierto",
-      reserved: "Reservado",
-      confirmed: "Confirmado",
-      announced: "Anunciado",
-      suspended: "Suspendido",
-      unavailable: "No disponible",
-    };
-    return labels[status];
+  const isDateDisabled = (day: number) => {
+    const date = new Date(year, month, day);
+    return date < minDate || date > maxDate;
+  };
+
+  const handleDayClick = (day: number) => {
+    if (isDateDisabled(day)) return;
+
+    const date = new Date(year, month, day);
+    const formattedDate = date.toISOString().split("T")[0];
+    router.push(`/solicitar-fecha?fecha=${formattedDate}`);
   };
 
   const monthNames = [
@@ -135,14 +161,23 @@ export function CalendarView({ competitions }: CalendarViewProps) {
             {monthNames[month]} {year}
           </h2>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={previousMonth} size="icon" disabled={
-              year === new Date().getFullYear() && month === new Date().getMonth()
-            }>
+            <Button
+              variant="outline"
+              onClick={previousMonth}
+              size="icon"
+              disabled={
+                year === new Date().getFullYear() &&
+                month === new Date().getMonth()
+              }
+            >
               <ChevronLeft />
             </Button>
-            <Button variant="outline" onClick={nextMonth} size="icon" disabled={
-              year === new Date().getFullYear() + 1 && month === 11
-            }>
+            <Button
+              variant="outline"
+              onClick={nextMonth}
+              size="icon"
+              disabled={year === new Date().getFullYear() + 1 && month === 11}
+            >
               <ChevronRight />
             </Button>
           </div>
@@ -165,32 +200,59 @@ export function CalendarView({ competitions }: CalendarViewProps) {
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
             const dayCompetitions = getCompetitionsForDay(day);
+            const holiday = getHolidayForDay(day);
             const isToday =
               day === new Date().getDate() &&
               month === new Date().getMonth() &&
               year === new Date().getFullYear();
+            const disabled = isDateDisabled(day);
 
             return (
               <div
                 key={day}
-                className={cn("min-h-24 border rounded-lg p-2", isToday
-                  ? "bg-blue-50 border-blue-300 dark:bg-blue-900 dark:border-blue-700"
-                  : "border-slate-200 dark:border-slate-700")}
+                onClick={() => handleDayClick(day)}
+                className={cn(
+                  "min-h-24 border rounded-lg p-2 transition-colors",
+                  disabled
+                    ? "cursor-not-allowed opacity-50 bg-slate-50 dark:bg-slate-900"
+                    : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+                  isToday
+                    ? "bg-blue-50 border-blue-300 dark:bg-blue-900 dark:border-blue-700"
+                    : "border-slate-200 dark:border-slate-700",
+                  holiday && "bg-red-50 dark:bg-red-950",
+                )}
               >
                 <div
-                  className={cn("text-sm font-semibold mb-1", isToday
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-slate-700 dark:text-slate-300"
+                  className={cn(
+                    "text-sm font-semibold mb-1",
+                    disabled && !isToday && "text-muted-foreground",
+                    isToday
+                      ? "text-blue-600 dark:text-blue-400"
+                      : !disabled && "text-slate-700 dark:text-slate-300",
                   )}
                 >
                   {day}
                 </div>
+                {holiday && (
+                  <div
+                    className="text-xs text-red-600 dark:text-red-400 font-medium mb-1 truncate"
+                    title={holiday.nombre}
+                  >
+                    {holiday.nombre}
+                  </div>
+                )}
                 <div className="space-y-1">
                   {dayCompetitions.map((comp) => (
                     <div
                       key={comp.id}
-                      onClick={() => handleCompetitionClick(comp)}
-                      className="text-xs p-1 bg-slate-100 dark:bg-slate-800 rounded truncate hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCompetitionClick(comp);
+                      }}
+                      className={cn(
+                        "text-xs p-1 rounded truncate cursor-pointer transition-colors",
+                        getPublicStatusColor(comp.statusPublic),
+                      )}
                       title={`Competencia en ${comp.state.region.displayName}`}
                     >
                       Competencia en {comp.state.region.displayName}
@@ -222,8 +284,8 @@ export function CalendarView({ competitions }: CalendarViewProps) {
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                        <> - {formatDate(selectedCompetition.endDate)}</>
-                      )}
+                      <> - {formatDate(selectedCompetition.endDate)}</>
+                    )}
                   </p>
                 </div>
               </div>
@@ -240,8 +302,13 @@ export function CalendarView({ competitions }: CalendarViewProps) {
 
               <div>
                 <p className="font-semibold mb-1">Estado</p>
-                <span className="inline-block px-3 py-1 text-sm rounded-full bg-primary/10 text-primary">
-                  {getStatusLabel(selectedCompetition.statusPublic)}
+                <span
+                  className={cn(
+                    "text-xs px-2 py-1 rounded",
+                    getPublicStatusColor(selectedCompetition.statusPublic),
+                  )}
+                >
+                  {formatPublicStatus(selectedCompetition.statusPublic)}
                 </span>
               </div>
             </div>
