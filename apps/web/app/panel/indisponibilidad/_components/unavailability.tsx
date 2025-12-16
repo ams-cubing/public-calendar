@@ -30,12 +30,16 @@ import { submitUnavailability } from "../_actions/submit-unavailability";
 
 const unavailabilitySchema = z
   .object({
-    startDate: z
-      .date()
-      .min(new Date(), "La fecha de inicio no puede ser en el pasado"),
-    endDate: z
-      .date()
-      .min(new Date(), "La fecha de fin no puede ser en el pasado"),
+    startDate: z.date({
+      error: (issue) =>
+        issue.input === undefined
+          ? "Fecha de inicio requerida"
+          : "Fecha inválida",
+    }),
+    endDate: z.date({
+      error: (issue) =>
+        issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
+    }),
     note: z.string().optional(),
   })
   .refine((data) => data.endDate >= data.startDate, {
@@ -139,7 +143,7 @@ export function UnavailabilityForm() {
           name="note"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nota (opcional)</FormLabel>
+              <FormLabel>Nota</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Razón de la indisponibilidad..."

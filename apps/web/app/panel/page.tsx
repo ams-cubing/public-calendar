@@ -79,7 +79,7 @@ export default async function Page() {
                       {row.name || "Sin nombre"}
                     </div>
                     <div className="text-xs">
-                      {row.city}, {row.state.id}
+                      {row.city}, {row.state.name}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -148,6 +148,13 @@ export default async function Page() {
                   </TableCell>
                 </TableRow>
               ))}
+              {allComps.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    No hay competencias disponibles.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

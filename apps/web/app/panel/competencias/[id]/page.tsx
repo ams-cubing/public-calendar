@@ -19,6 +19,11 @@ export default async function Page({
           delegate: true,
         },
       },
+      organizers: {
+        with: {
+          organizer: true,
+        },
+      },
     },
   });
 
@@ -33,19 +38,32 @@ export default async function Page({
 
   const unavailableDates = [] as Date[];
 
+  // Transform competition data to match the expected format
+  const formattedCompetition = {
+    ...competition,
+    delegates: competition.delegates.map((d) => ({
+      delegateWcaId: d.delegateWcaId,
+      isPrimary: d.isPrimary,
+    })),
+    organizers: competition.organizers.map((o) => ({
+      organizerWcaId: o.organizerWcaId,
+      isPrimary: o.isPrimary,
+    })),
+  };
+
   return (
     <main className="p-6">
       <div className="max-w-2xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Crear nueva Competencia</h1>
+          <h1 className="text-3xl font-bold">Editar Competencia</h1>
           <p className="text-muted-foreground mt-2">
-            Usa el formulario a continuación para crear una nueva competencia.
+            Modifica los detalles de la competencia según sea necesario.
           </p>
         </div>
         <CompetitionForm
           unavailableDates={unavailableDates}
           delegates={delegates}
-          competition={competition}
+          competition={formattedCompetition}
         />
       </div>
     </main>

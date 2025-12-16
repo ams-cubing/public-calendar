@@ -1,21 +1,18 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
 import { useFormStatus } from "react-dom";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, LogIn } from "lucide-react";
+import { DropdownMenuItem } from "@workspace/ui/components/dropdown-menu";
 
 export function SignInButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      disabled={pending}
-      variant="ghost"
-      className="hover:bg-muted/10 hover:text-primary-foreground focus:bg-muted/10 dark:hover:bg-muted/10 dark:focus:bg-muted/10"
-    >
-      {pending ? <LoaderCircle className="animate-spin" /> : null}
-      <span>Iniciar sesión</span>
-    </Button>
+    <DropdownMenuItem asChild disabled={pending}>
+      <button type="submit" className="w-full">
+        {pending ? <LoaderCircle className="animate-spin" /> : <LogIn />}
+        <span>Iniciar sesión</span>
+      </button>
+    </DropdownMenuItem>
   );
 }

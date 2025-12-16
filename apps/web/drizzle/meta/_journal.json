@@ -71,6 +71,13 @@
       "when": 1765509306582,
       "tag": "0009_medical_xorn",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1765848290899,
+      "tag": "0010_fast_blink",
+      "breakpoints": true
     }
   ]
 }

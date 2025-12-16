@@ -1,7 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { competitions, competitionDelegates } from "@/db/schema";
+import {
+  competitions,
+  competitionDelegates,
+  competitionOrganizers,
+} from "@/db/schema";
 import { z } from "zod";
 import { auth } from "@/auth";
 
@@ -10,8 +14,16 @@ const createCompetitionSchema = z
     name: z.string().min(2).optional().or(z.literal("")),
     city: z.string().min(2),
     stateId: z.string().min(1),
-    startDate: z.date(),
-    endDate: z.date(),
+    startDate: z.date({
+      error: (issue) =>
+        issue.input === undefined
+          ? "Fecha de inicio requerida"
+          : "Fecha inválida",
+    }),
+    endDate: z.date({
+      error: (issue) =>
+        issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
+    }),
     trelloUrl: z.url().optional().or(z.literal("")),
     statusPublic: z.enum([
       "open",
@@ -31,6 +43,12 @@ const createCompetitionSchema = z
       .array(z.string())
       .min(1, "Selecciona al menos un delegado"),
     primaryDelegateWcaId: z.string().min(1, "Selecciona un delegado principal"),
+    organizerWcaIds: z
+      .array(z.string())
+      .min(1, "Selecciona al menos un organizador"),
+    primaryOrganizerWcaId: z
+      .string()
+      .min(1, "Selecciona un organizador principal"),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "End date must be after start date",
@@ -39,6 +57,10 @@ const createCompetitionSchema = z
   .refine((data) => data.delegateWcaIds.includes(data.primaryDelegateWcaId), {
     message: "El delegado principal debe estar en la lista de delegados",
     path: ["primaryDelegateWcaId"],
+  })
+  .refine((data) => data.organizerWcaIds.includes(data.primaryOrganizerWcaId), {
+    message: "El organizador principal debe estar en la lista de organizadores",
+    path: ["primaryOrganizerWcaId"],
   });
 
 export async function createCompetition(
@@ -84,6 +106,15 @@ export async function createCompetition(
     }));
 
     await db.insert(competitionDelegates).values(delegateAssignments);
+
+    // Assign all selected organizers
+    const organizerAssignments = validatedData.organizerWcaIds.map((wcaId) => ({
+      competitionId: newCompetition!.id,
+      organizerWcaId: wcaId,
+      isPrimary: wcaId === validatedData.primaryOrganizerWcaId,
+    }));
+
+    await db.insert(competitionOrganizers).values(organizerAssignments);
 
     return {
       success: true,

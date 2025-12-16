@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,7 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@workspace/ui/components/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { addMonths, addWeeks, format } from "date-fns";
 import { cn } from "@workspace/ui/lib/utils";
 import { createCompetition } from "../_actions/create-competition";
@@ -41,6 +39,8 @@ import { useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { useRouter } from "next/navigation";
+import { OrganizerCombobox } from "./organizer-combobox";
+import { searchUsers } from "../_actions/wca-users";
 
 const dateRequestSchema = z
   .object({
@@ -51,8 +51,16 @@ const dateRequestSchema = z
       .or(z.literal("")),
     city: z.string().min(2, "El nombre de la ciudad es requerido"),
     stateId: z.string().min(1, "El estado es requerido"),
-    startDate: z.date(),
-    endDate: z.date(),
+    startDate: z.date({
+      error: (issue) =>
+        issue.input === undefined
+          ? "Fecha de inicio requerida"
+          : "Fecha inválida",
+    }),
+    endDate: z.date({
+      error: (issue) =>
+        issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
+    }),
     trelloUrl: z.url("URL inválida").optional().or(z.literal("")),
     statusPublic: z.enum([
       "open",
@@ -72,6 +80,12 @@ const dateRequestSchema = z
       .array(z.string())
       .min(1, "Selecciona al menos un delegado"),
     primaryDelegateWcaId: z.string().min(1, "Selecciona un delegado principal"),
+    organizerWcaIds: z
+      .array(z.string())
+      .min(1, "Selecciona al menos un organizador"),
+    primaryOrganizerWcaId: z
+      .string()
+      .min(1, "Selecciona un organizador principal"),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "La fecha de fin debe ser posterior o igual a la fecha de inicio",
@@ -80,6 +94,10 @@ const dateRequestSchema = z
   .refine((data) => data.delegateWcaIds.includes(data.primaryDelegateWcaId), {
     message: "El delegado principal debe estar en la lista de delegados",
     path: ["primaryDelegateWcaId"],
+  })
+  .refine((data) => data.organizerWcaIds.includes(data.primaryOrganizerWcaId), {
+    message: "El organizador principal debe estar en la lista de organizadores",
+    path: ["primaryOrganizerWcaId"],
   });
 
 type DateRequestFormValues = z.infer<typeof dateRequestSchema>;
@@ -155,6 +173,10 @@ type Competition = {
     delegateWcaId: string;
     isPrimary: boolean;
   }>;
+  organizers: Array<{
+    organizerWcaId: string;
+    isPrimary: boolean;
+  }>;
 };
 
 export function CompetitionForm({
@@ -167,6 +189,9 @@ export function CompetitionForm({
   competition?: Competition;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedOrganizers, setSelectedOrganizers] = useState<
+    Array<{ wcaId: string; name: string }>
+  >([]);
   const isEditing = !!competition;
 
   const searchParams = useSearchParams();
@@ -205,11 +230,15 @@ export function CompetitionForm({
           delegateWcaIds: competition.delegates.map((d) => d.delegateWcaId),
           primaryDelegateWcaId:
             competition.delegates.find((d) => d.isPrimary)?.delegateWcaId || "",
+          organizerWcaIds: competition.organizers.map((o) => o.organizerWcaId),
+          primaryOrganizerWcaId:
+            competition.organizers.find((o) => o.isPrimary)?.organizerWcaId ||
+            "",
         }
       : {
           name: "",
           city: "",
-          stateId: undefined,
+          stateId: "",
           startDate: initialDate,
           endDate: initialDate,
           trelloUrl: "",
@@ -217,8 +246,60 @@ export function CompetitionForm({
           statusInternal: "draft",
           delegateWcaIds: [],
           primaryDelegateWcaId: "",
+          organizerWcaIds: [],
+          primaryOrganizerWcaId: "",
         },
   });
+
+  useEffect(() => {
+    if (competition && competition.organizers.length > 0) {
+      const loadOrganizers = async () => {
+        const organizerDetails = await Promise.all(
+          competition.organizers.map(async (org) => {
+            const users = await searchUsers(org.organizerWcaId);
+            const user = users.find((u) => u.wcaId === org.organizerWcaId);
+            return user
+              ? { wcaId: user.wcaId, name: user.name }
+              : { wcaId: org.organizerWcaId, name: org.organizerWcaId };
+          }),
+        );
+        setSelectedOrganizers(organizerDetails);
+      };
+      loadOrganizers();
+    }
+  }, [competition]);
+
+  const handleAddOrganizer = async (wcaId: string) => {
+    const current = form.getValues("organizerWcaIds") || [];
+    if (!current.includes(wcaId)) {
+      form.setValue("organizerWcaIds", [...current, wcaId]);
+
+      // Fetch organizer details
+      const users = await searchUsers(wcaId);
+      const user = users.find((u) => u.wcaId === wcaId);
+
+      if (user) {
+        setSelectedOrganizers((prev) => [
+          ...prev,
+          { wcaId: user.wcaId, name: user.name },
+        ]);
+      }
+    }
+  };
+
+  const handleRemoveOrganizer = (wcaId: string) => {
+    const current = form.getValues("organizerWcaIds") || [];
+    form.setValue(
+      "organizerWcaIds",
+      current.filter((id) => id !== wcaId),
+    );
+    setSelectedOrganizers((prev) => prev.filter((org) => org.wcaId !== wcaId));
+
+    // Clear primary organizer if it was the removed one
+    if (form.getValues("primaryOrganizerWcaId") === wcaId) {
+      form.setValue("primaryOrganizerWcaId", "");
+    }
+  };
 
   async function onSubmit(data: DateRequestFormValues) {
     setIsSubmitting(true);
@@ -240,7 +321,7 @@ export function CompetitionForm({
             `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
         );
       }
-    } catch (error) {
+    } catch {
       toast.error(
         `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
       );
@@ -257,7 +338,7 @@ export function CompetitionForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nombre de la competencia (opcional)</FormLabel>
+              <FormLabel>Nombre de la competencia</FormLabel>
               <FormControl>
                 <Input placeholder="Ej: Guadalajara Open 2025" {...field} />
               </FormControl>
@@ -382,7 +463,7 @@ export function CompetitionForm({
           name="trelloUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL de Trello (opcional)</FormLabel>
+              <FormLabel>URL de Trello</FormLabel>
               <FormControl>
                 <Input
                   placeholder="https://trello.com/b/..."
@@ -455,6 +536,77 @@ export function CompetitionForm({
 
         <FormField
           control={form.control}
+          name="organizerWcaIds"
+          render={() => (
+            <FormItem>
+              <FormLabel>Organizadores</FormLabel>
+              <FormDescription>
+                Busca y selecciona organizadores. Si no encuentras uno, puedes
+                agregarlo desde la WCA.
+              </FormDescription>
+              <OrganizerCombobox
+                value=""
+                onValueChange={handleAddOrganizer}
+                selectedOrganizers={form.watch("organizerWcaIds") || []}
+                placeholder="Buscar organizador..."
+              />
+              {selectedOrganizers.length > 0 && (
+                <div className="space-y-2 mt-4 border rounded-md p-3">
+                  {selectedOrganizers.map((organizer) => (
+                    <div
+                      key={organizer.wcaId}
+                      className="flex items-center justify-between p-2 bg-secondary/50 rounded-md"
+                    >
+                      <span className="text-sm">
+                        {organizer.name} ({organizer.wcaId})
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveOrganizer(organizer.wcaId)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="primaryOrganizerWcaId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Organizador principal</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona el organizador principal" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {selectedOrganizers.map((organizer) => (
+                    <SelectItem key={organizer.wcaId} value={organizer.wcaId}>
+                      {organizer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Debe ser uno de los organizadores seleccionados arriba
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="delegateWcaIds"
           render={() => (
             <FormItem>
@@ -517,7 +669,7 @@ export function CompetitionForm({
                     .filter(Boolean)
                     .map((delegate) => (
                       <SelectItem key={delegate!.wcaId} value={delegate!.wcaId}>
-                        {delegate!.name}
+                        {delegate?.name}
                       </SelectItem>
                     ))}
                 </SelectContent>

@@ -5,6 +5,7 @@ import {
   states,
   regions,
   competitionDelegates,
+  competitionOrganizers,
   users,
 } from "@/db/schema";
 import {
@@ -24,6 +25,32 @@ export default async function Page() {
     unauthorized();
   }
 
+  // Get competition IDs where user is an organizer
+  const userOrganizerCompetitions = await db
+    .select({ competitionId: competitionOrganizers.competitionId })
+    .from(competitionOrganizers)
+    .where(eq(competitionOrganizers.organizerWcaId, session.user.wcaId));
+
+  const competitionIds = userOrganizerCompetitions.map((c) => c.competitionId);
+
+  if (competitionIds.length === 0) {
+    return (
+      <main className="p-6">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold">Tus competencias</h1>
+            <p className="text-muted-foreground mt-2">
+              Aquí puedes ver las competencias que tienes programadas.
+            </p>
+          </div>
+          <p className="text-muted-foreground">
+            No tienes competencias solicitadas.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   const userCompetitions = await db
     .select({
       id: competitions.id,
@@ -40,10 +67,9 @@ export default async function Page() {
     .from(competitions)
     .leftJoin(states, eq(competitions.stateId, states.id))
     .leftJoin(regions, eq(states.regionId, regions.id))
-    .where(eq(competitions.requestedBy, session.user.wcaId));
+    .where(inArray(competitions.id, competitionIds));
 
   // Fetch delegates for each competition
-  const competitionIds = userCompetitions.map((c) => c.id);
   const delegates = await db
     .select({
       competitionId: competitionDelegates.competitionId,
@@ -53,7 +79,19 @@ export default async function Page() {
     })
     .from(competitionDelegates)
     .leftJoin(users, eq(competitionDelegates.delegateWcaId, users.wcaId))
-    .where(inArray(competitionDelegates.competitionId, competitionIds)); // You'll need to use `inArray` for multiple IDs
+    .where(inArray(competitionDelegates.competitionId, competitionIds));
+
+  // Fetch organizers for each competition
+  const organizers = await db
+    .select({
+      competitionId: competitionOrganizers.competitionId,
+      organizerName: users.name,
+      organizerWcaId: users.wcaId,
+      isPrimary: competitionOrganizers.isPrimary,
+    })
+    .from(competitionOrganizers)
+    .leftJoin(users, eq(competitionOrganizers.organizerWcaId, users.wcaId))
+    .where(inArray(competitionOrganizers.competitionId, competitionIds));
 
   // Group delegates by competition
   const delegatesByCompetition = delegates.reduce(
@@ -65,6 +103,18 @@ export default async function Page() {
       return acc;
     },
     {} as Record<number, typeof delegates>,
+  );
+
+  // Group organizers by competition
+  const organizersByCompetition = organizers.reduce(
+    (acc, organizer) => {
+      if (!acc[organizer.competitionId]) {
+        acc[organizer.competitionId] = [];
+      }
+      acc[organizer.competitionId]?.push(organizer);
+      return acc;
+    },
+    {} as Record<number, typeof organizers>,
   );
 
   return (
@@ -85,6 +135,7 @@ export default async function Page() {
           ) : (
             userCompetitions.map((comp) => {
               const compDelegates = delegatesByCompetition[comp.id] || [];
+              const compOrganizers = organizersByCompetition[comp.id] || [];
               return (
                 <div key={comp.id} className="border rounded-lg p-4 space-y-2">
                   <h3 className="font-semibold text-lg">
@@ -97,6 +148,22 @@ export default async function Page() {
                     {new Date(comp.startDate).toLocaleDateString("es-MX")} -{" "}
                     {new Date(comp.endDate).toLocaleDateString("es-MX")}
                   </p>
+                  {compOrganizers.length > 0 && (
+                    <div className="text-sm">
+                      <span className="font-medium">
+                        {compOrganizers.length === 1
+                          ? "Organizador:"
+                          : "Organizadores:"}
+                      </span>{" "}
+                      {compOrganizers.map((o, i) => (
+                        <span key={o.organizerWcaId}>
+                          {o.organizerName} ({o.organizerWcaId})
+                          {o.isPrimary && " (Principal)"}
+                          {i < compOrganizers.length - 1 && ", "}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {compDelegates.length > 0 && (
                     <div className="text-sm">
                       <span className="font-medium">

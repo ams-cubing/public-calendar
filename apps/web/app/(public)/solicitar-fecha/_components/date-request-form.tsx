@@ -43,8 +43,16 @@ const dateRequestSchema = z
   .object({
     city: z.string().min(2, "El nombre de la ciudad es requerido"),
     stateId: z.string().min(1, "El estado es requerido"),
-    startDate: z.date(),
-    endDate: z.date(),
+    startDate: z.date({
+      error: (issue) =>
+        issue.input === undefined
+          ? "Fecha de inicio requerida"
+          : "Fecha inválida",
+    }),
+    endDate: z.date({
+      error: (issue) =>
+        issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
+    }),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "La fecha de fin debe ser posterior o igual a la fecha de inicio",
@@ -119,8 +127,8 @@ export function DateRequestForm({
   const form = useForm<DateRequestFormValues>({
     resolver: zodResolver(dateRequestSchema),
     defaultValues: {
-      city: undefined,
-      stateId: undefined,
+      city: "",
+      stateId: "",
       startDate: initialDate,
       endDate: initialDate,
     },

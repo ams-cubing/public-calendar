@@ -23,13 +23,13 @@ export function UserDropdown({ user }: { user: User }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2">
+      <DropdownMenuTrigger className="flex items-center gap-2 focus:outline-none">
         <Avatar>
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback>U</AvatarFallback>
         </Avatar>
         <span>{user.name}</span>
-        {user.role === "delegate" && <Badge>{user.role}</Badge>}
+        {user.role === "delegate" && <Badge>Delegado</Badge>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isMobile ? "center" : "end"}>
         <DropdownMenuItem>

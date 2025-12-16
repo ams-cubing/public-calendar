@@ -155,7 +155,7 @@ export function CalendarView({ competitions }: CalendarViewProps) {
 
   return (
     <>
-      <div className="bg-background rounded-lg shadow">
+      <div className="bg-background">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-primary">
             {monthNames[month]} {year}

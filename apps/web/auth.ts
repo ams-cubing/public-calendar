@@ -64,7 +64,8 @@ const result = NextAuth({
           image: profile.me.avatar.thumb_url ?? undefined,
           // Custom fields
           wcaId: profile.me.wca_id,
-          role: profile.me.delegate_status ? "delegate" : "user",
+          // role: profile.me.delegate_status ? "delegate" : "user",
+          role: "delegate", // Temporary: everyone is delegate for now
         };
       },
       clientId: process.env.WCA_CLIENT_ID,
@@ -95,6 +96,8 @@ const result = NextAuth({
             .update(users)
             .set({
               lastLogin: new Date(),
+              name: user.name!,
+              email: user.email!,
               avatarUrl: user.image, // In case they changed it on WCA
               role: user.role as string, // In case they were promoted
             })
@@ -131,7 +134,7 @@ export const signOut: NextAuthResult["signOut"] = result.signOut;
 declare module "next-auth" {
   interface Session {
     user: {
-      role: string;
+      role: "delegate" | "user";
       wcaId: string;
       id: string;
       name?: string | null;
@@ -141,14 +144,14 @@ declare module "next-auth" {
   }
 
   export interface User {
-    role: string;
+    role: "delegate" | "user";
     wcaId: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
-    role: string;
+    role: "delegate" | "user";
     wcaId: string;
   }
 }

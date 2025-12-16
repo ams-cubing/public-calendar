@@ -7,6 +7,7 @@ import {
   users,
   states,
   competitionDelegates,
+  competitionOrganizers,
 } from "@/db/schema";
 import { z } from "zod";
 import { eq, and, lte, gte, inArray } from "drizzle-orm";
@@ -17,8 +18,16 @@ const dateRequestSchema = z
   .object({
     city: z.string().min(2),
     stateId: z.string().min(1),
-    startDate: z.date(),
-    endDate: z.date(),
+    startDate: z.date({
+      error: (issue) =>
+        issue.input === undefined
+          ? "Fecha de inicio requerida"
+          : "Fecha inválida",
+    }),
+    endDate: z.date({
+      error: (issue) =>
+        issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
+    }),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "End date must be after start date",
@@ -135,6 +144,15 @@ export async function submitDateRequest(
       delegateWcaId: assignedDelegate.wcaId,
       isPrimary: true,
     });
+
+    // 6. Assign the requesting user as organizer if authenticated
+    if (session?.user?.wcaId) {
+      await db.insert(competitionOrganizers).values({
+        competitionId: newCompetition!.id,
+        organizerWcaId: session.user.wcaId,
+        isPrimary: true,
+      });
+    }
 
     revalidatePath("/");
 

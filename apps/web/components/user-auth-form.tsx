@@ -21,7 +21,7 @@ export function UserAuthForm(): React.JSX.Element {
   }
 
   return (
-    <form action={signInWithWithWCA} className="grid">
+    <form action={signInWithWithWCA}>
       <SignInButton />
     </form>
   );

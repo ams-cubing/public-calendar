@@ -84,6 +84,16 @@ export const competitionDelegates = pgTable("competition_delegate", {
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
+export const competitionOrganizers = pgTable("competition_organizer", {
+  competitionId: serial("competition_id")
+    .notNull()
+    .references(() => competitions.id, { onDelete: "cascade" }),
+  organizerWcaId: text("organizer_wca_id")
+    .notNull()
+    .references(() => users.wcaId, { onDelete: "cascade" }),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+});
+
 export const unavailability = pgTable("unavailability", {
   id: serial("id").primaryKey(),
   userWcaId: text("user_wca_id")
@@ -116,6 +126,7 @@ export const competitionsRelations = relations(
       references: [states.id],
     }),
     delegates: many(competitionDelegates),
+    organizers: many(competitionOrganizers),
   }),
 );
 
@@ -133,11 +144,26 @@ export const competitionDelegatesRelations = relations(
   }),
 );
 
+export const competitionOrganizersRelations = relations(
+  competitionOrganizers,
+  ({ one }) => ({
+    competition: one(competitions, {
+      fields: [competitionOrganizers.competitionId],
+      references: [competitions.id],
+    }),
+    organizer: one(users, {
+      fields: [competitionOrganizers.organizerWcaId],
+      references: [users.wcaId],
+    }),
+  }),
+);
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   region: one(regions, {
     fields: [users.regionId],
     references: [regions.id],
   }),
   delegatedCompetitions: many(competitionDelegates),
+  organizedCompetitions: many(competitionOrganizers),
   unavailability: many(unavailability),
 }));
