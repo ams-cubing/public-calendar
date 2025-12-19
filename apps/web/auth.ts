@@ -57,6 +57,8 @@ const result = NextAuth({
       token: "https://www.worldcubeassociation.org/oauth/token",
       userinfo: "https://www.worldcubeassociation.org/api/v0/me",
       profile(profile: WCAProfile) {
+        console.log(profile.me)
+
         return {
           id: profile.me.wca_id,
           name: profile.me.name,

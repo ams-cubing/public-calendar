@@ -24,7 +24,7 @@ export default async function Page() {
       ),
   });
 
-  const MAX_REQUESTS_PER_DAY = 1;
+  const MAX_REQUESTS_PER_DAY = 3;
   const canSubmit = recentRequestsCount.length < MAX_REQUESTS_PER_DAY;
 
   const unavailableDates = [] as Date[];
