@@ -10,7 +10,10 @@ import {
   SidebarInset,
 } from "@workspace/ui/components/sidebar";
 import { Footer } from "@/components/footer";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const fontSans = Rubik({
   subsets: ["latin"],
@@ -33,9 +36,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
+  const headersList = await headers();
+
+  const session = await auth.api.getSession({
+    headers: headersList,
+  });
 
   const user = session?.user;
+
+  const normalizedUser = user
+    ? {
+        ...user,
+        image: user.image ?? null,
+        regionId: user.regionId ?? null,
+        lastLogin: user.lastLogin ?? null,
+      }
+    : undefined;
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -44,13 +60,15 @@ export default async function RootLayout({
       >
         <Providers>
           <SidebarProvider>
-            <AppSidebar user={user!} />
+            <AppSidebar user={normalizedUser} />
             <SidebarInset className="flex flex-col min-h-screen">
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />
             </SidebarInset>
           </SidebarProvider>
+          <Analytics />
+          <SpeedInsights />
           <Toaster />
         </Providers>
       </body>

@@ -1,12 +1,19 @@
-import NextAuth, { type NextAuthResult } from "next-auth";
-import { authConfig } from "./auth.config";
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-const result = NextAuth(authConfig);
-const auth: NextAuthResult["auth"] = result.auth;
+export async function proxy(request: NextRequest) {
+  const sessionCookie = getSessionCookie(request);
 
-export default auth;
+  // THIS IS NOT SECURE!
+  // This is the recommended approach to optimistically redirect users
+  // We recommend handling auth checks in each page/route
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
+  matcher: ["/dashboard"], // Specify the routes the middleware applies to
 };

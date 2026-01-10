@@ -33,7 +33,7 @@ export function OrganizerCombobox({
   const [search, setSearch] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [users, setUsers] = React.useState<
-    Array<{ wcaId: string; name: string; avatarUrl: string | null }>
+    Array<{ wcaId: string; name: string; image: string | null }>
   >([]);
   const [showAddDialog, setShowAddDialog] = React.useState(false);
 
@@ -134,9 +134,9 @@ export function OrganizerCombobox({
             availableUsers.map((user) => (
               <ComboboxItem key={user.wcaId} value={user.wcaId} outset>
                 <div className="flex items-center gap-2">
-                  {user.avatarUrl && (
+                  {user.image && (
                     <Image
-                      src={user.avatarUrl}
+                      src={user.image}
                       alt={user.name}
                       className="h-6 w-6 rounded-full"
                       width={24}

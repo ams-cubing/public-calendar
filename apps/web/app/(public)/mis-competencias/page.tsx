@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   competitions,
@@ -6,8 +5,9 @@ import {
   regions,
   competitionDelegates,
   competitionOrganizers,
-  users,
+  user,
 } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import {
   getPublicStatusColor,
   formatPublicStatus,
@@ -16,10 +16,15 @@ import {
 } from "@/lib/utils";
 import { cn } from "@workspace/ui/lib/utils";
 import { eq, inArray } from "drizzle-orm";
+import { headers } from "next/headers";
 import { unauthorized } from "next/navigation";
 
 export default async function Page() {
-  const session = await auth();
+  const headersList = await headers();
+
+  const session = await auth.api.getSession({
+    headers: headersList,
+  });
 
   if (!session) {
     unauthorized();
@@ -73,24 +78,24 @@ export default async function Page() {
   const delegates = await db
     .select({
       competitionId: competitionDelegates.competitionId,
-      delegateName: users.name,
-      delegateWcaId: users.wcaId,
+      delegateName: user.name,
+      delegateWcaId: user.wcaId,
       isPrimary: competitionDelegates.isPrimary,
     })
     .from(competitionDelegates)
-    .leftJoin(users, eq(competitionDelegates.delegateWcaId, users.wcaId))
+    .leftJoin(user, eq(competitionDelegates.delegateWcaId, user.wcaId))
     .where(inArray(competitionDelegates.competitionId, competitionIds));
 
   // Fetch organizers for each competition
   const organizers = await db
     .select({
       competitionId: competitionOrganizers.competitionId,
-      organizerName: users.name,
-      organizerWcaId: users.wcaId,
+      organizerName: user.name,
+      organizerWcaId: user.wcaId,
       isPrimary: competitionOrganizers.isPrimary,
     })
     .from(competitionOrganizers)
-    .leftJoin(users, eq(competitionOrganizers.organizerWcaId, users.wcaId))
+    .leftJoin(user, eq(competitionOrganizers.organizerWcaId, user.wcaId))
     .where(inArray(competitionOrganizers.competitionId, competitionIds));
 
   // Group delegates by competition

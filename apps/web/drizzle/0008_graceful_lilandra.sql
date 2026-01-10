@@ -1,1 +1,0 @@
-ALTER TABLE "competition" ADD COLUMN "trello_url" text;

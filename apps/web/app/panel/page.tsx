@@ -116,7 +116,7 @@ export default async function Page() {
                               title={`${d.delegate.name}${d.isPrimary ? " (Principal)" : ""}`}
                             >
                               <AvatarImage
-                                src={d.delegate.avatarUrl || undefined}
+                                src={d.delegate.image || undefined}
                                 alt={d.delegate.name}
                               />
                               <AvatarFallback>

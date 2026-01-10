@@ -16,7 +16,7 @@ import {
 } from "@workspace/ui/components/sidebar";
 import Image from "next/image";
 import { NavDelegate } from "./nav-delegate";
-import { User } from "next-auth";
+import type { User } from "@/db/schema";
 
 const data = {
   calendar: [
@@ -59,7 +59,7 @@ export function AppSidebar({
   user,
   ...props
 }: {
-  user: User;
+  user: User | undefined;
 } & React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -1,8 +1,13 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import { UnavailabilityForm } from "./_components/unavailability";
+import { headers } from "next/headers";
 
 export default async function Page() {
-  const session = await auth();
+  const headersList = await headers();
+
+  const session = await auth.api.getSession({
+    headers: headersList,
+  });
 
   if (!session) {
     return (

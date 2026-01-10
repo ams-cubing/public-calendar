@@ -6,8 +6,9 @@ import {
   competitionDelegates,
   competitionOrganizers,
 } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { z } from "zod";
-import { auth } from "@/auth";
 
 const createCompetitionSchema = z
   .object({
@@ -67,7 +68,11 @@ export async function createCompetition(
   data: z.infer<typeof createCompetitionSchema>,
 ) {
   try {
-    const session = await auth();
+    const headersList = await headers();
+
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
 
     if (!session?.user?.wcaId) {
       return {

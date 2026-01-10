@@ -1,13 +1,120 @@
+import { InferSelectModel, relations } from "drizzle-orm";
 import {
   pgTable,
   text,
+  timestamp,
+  boolean,
+  index,
+  pgEnum,
   serial,
   date,
-  timestamp,
-  pgEnum,
-  boolean,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  wcaId: text("wca_id").notNull().unique(),
+  role: text("role", { enum: ["delegate", "organizer", "user"] })
+    .default("user")
+    .notNull(),
+  regionId: text("region_id").references(() => regions.id),
+  lastLogin: timestamp("last_login").defaultNow(),
+});
+
+export type User = InferSelectModel<typeof user>;
+
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [index("session_userId_idx").on(table.userId)],
+);
+
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("account_userId_idx").on(table.userId)],
+);
+
+export const verification = pgTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const userRelations = relations(user, ({ one, many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  region: one(regions, {
+    fields: [user.regionId],
+    references: [regions.id],
+  }),
+  delegatedCompetitions: many(competitionDelegates),
+  organizedCompetitions: many(competitionOrganizers),
+  unavailability: many(unavailability),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
 
 export const publicStatusEnum = pgEnum("public_status", [
   "open",
@@ -39,16 +146,6 @@ export const regions = pgTable("region", {
   mapColor: text("map_color").notNull(),
 });
 
-export const users = pgTable("user", {
-  wcaId: text("wca_id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  avatarUrl: text("avatar_url"),
-  role: text("role").default("user").notNull(),
-  regionId: text("region_id").references(() => regions.id),
-  lastLogin: timestamp("last_login").defaultNow(),
-});
-
 export const competitions = pgTable("competition", {
   id: serial("id").primaryKey(),
   name: text("name"),
@@ -58,7 +155,7 @@ export const competitions = pgTable("competition", {
     .notNull()
     .references(() => states.id),
 
-  requestedBy: text("requested_by").references(() => users.wcaId),
+  requestedBy: text("requested_by").references(() => user.wcaId),
 
   trelloUrl: text("trello_url"),
 
@@ -80,7 +177,7 @@ export const competitionDelegates = pgTable("competition_delegate", {
     .references(() => competitions.id, { onDelete: "cascade" }),
   delegateWcaId: text("delegate_wca_id")
     .notNull()
-    .references(() => users.wcaId, { onDelete: "cascade" }),
+    .references(() => user.wcaId, { onDelete: "cascade" }),
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
@@ -90,7 +187,7 @@ export const competitionOrganizers = pgTable("competition_organizer", {
     .references(() => competitions.id, { onDelete: "cascade" }),
   organizerWcaId: text("organizer_wca_id")
     .notNull()
-    .references(() => users.wcaId, { onDelete: "cascade" }),
+    .references(() => user.wcaId, { onDelete: "cascade" }),
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
@@ -98,7 +195,7 @@ export const unavailability = pgTable("unavailability", {
   id: serial("id").primaryKey(),
   userWcaId: text("user_wca_id")
     .notNull()
-    .references(() => users.wcaId, { onDelete: "cascade" }),
+    .references(() => user.wcaId, { onDelete: "cascade" }),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   note: text("note"),
@@ -115,7 +212,7 @@ export const statesRelations = relations(states, ({ one, many }) => ({
 
 export const regionsRelations = relations(regions, ({ many }) => ({
   states: many(states),
-  users: many(users),
+  users: many(user),
 }));
 
 export const competitionsRelations = relations(
@@ -137,9 +234,9 @@ export const competitionDelegatesRelations = relations(
       fields: [competitionDelegates.competitionId],
       references: [competitions.id],
     }),
-    delegate: one(users, {
+    delegate: one(user, {
       fields: [competitionDelegates.delegateWcaId],
-      references: [users.wcaId],
+      references: [user.wcaId],
     }),
   }),
 );
@@ -151,19 +248,9 @@ export const competitionOrganizersRelations = relations(
       fields: [competitionOrganizers.competitionId],
       references: [competitions.id],
     }),
-    organizer: one(users, {
+    organizer: one(user, {
       fields: [competitionOrganizers.organizerWcaId],
-      references: [users.wcaId],
+      references: [user.wcaId],
     }),
   }),
 );
-
-export const usersRelations = relations(users, ({ one, many }) => ({
-  region: one(regions, {
-    fields: [users.regionId],
-    references: [regions.id],
-  }),
-  delegatedCompetitions: many(competitionDelegates),
-  organizedCompetitions: many(competitionOrganizers),
-  unavailability: many(unavailability),
-}));

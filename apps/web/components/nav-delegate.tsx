@@ -9,13 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
-import type { User } from "next-auth";
+import type { User } from "@/db/schema";
 
 export function NavDelegate({
   user,
   delegate,
 }: {
-  user: User;
+  user: User | undefined;
   delegate: {
     name: string;
     url: string;

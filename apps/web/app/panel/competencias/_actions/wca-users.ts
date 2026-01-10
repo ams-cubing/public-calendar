@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { user } from "@/db/schema";
 import { eq, ilike, or } from "drizzle-orm";
 
 type WCAPerson = {
@@ -17,8 +17,8 @@ type WCAPerson = {
 
 export async function fetchAndCreateWCAUser(wcaId: string) {
   try {
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.wcaId, wcaId),
+    const existingUser = await db.query.user.findFirst({
+      where: eq(user.wcaId, wcaId),
     });
 
     if (existingUser) {
@@ -43,12 +43,13 @@ export async function fetchAndCreateWCAUser(wcaId: string) {
     const data: WCAPerson = await response.json();
 
     const [newUser] = await db
-      .insert(users)
+      .insert(user)
       .values({
+        id: crypto.randomUUID(),
         wcaId: data.person.wca_id,
         name: data.person.name,
-        email: `${data.person.wca_id}@wca.placeholder`, // Placeholder email
-        avatarUrl: data.person.avatar.url,
+        email: `${data.person.wca_id}@ams.placeholder`,
+        image: data.person.avatar.url,
         role: "user",
       })
       .returning();
@@ -56,7 +57,7 @@ export async function fetchAndCreateWCAUser(wcaId: string) {
     return {
       success: true,
       user: newUser,
-      message: "Usuario creado exitosamente",
+      message: `Organizador ${data.person.name} añadido exitosamente`,
     };
   } catch (error) {
     console.error("Error fetching WCA person:", error);
@@ -72,11 +73,11 @@ export async function searchUsers(query: string) {
     if (!query) {
       const allUsers = await db
         .select({
-          wcaId: users.wcaId,
-          name: users.name,
-          avatarUrl: users.avatarUrl,
+          wcaId: user.wcaId,
+          name: user.name,
+          image: user.image,
         })
-        .from(users)
+        .from(user)
         .limit(5);
 
       return allUsers;
@@ -84,13 +85,13 @@ export async function searchUsers(query: string) {
 
     const searchResults = await db
       .select({
-        wcaId: users.wcaId,
-        name: users.name,
-        avatarUrl: users.avatarUrl,
+        wcaId: user.wcaId,
+        name: user.name,
+        image: user.image,
       })
-      .from(users)
+      .from(user)
       .where(
-        or(ilike(users.name, `%${query}%`), ilike(users.wcaId, `%${query}%`)),
+        or(ilike(user.name, `%${query}%`), ilike(user.wcaId, `%${query}%`)),
       )
       .limit(5);
 

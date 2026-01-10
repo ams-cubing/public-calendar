@@ -21,14 +21,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar";
-import { signOutAction } from "@/app/actions";
-import { UserAuthForm } from "./user-auth-form";
 import { useTheme } from "next-themes";
-import type { User } from "next-auth";
+import type { User } from "@/db/schema";
+import { SignInButton } from "./sign-in-button";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
-export function NavUser({ user }: { user: User }) {
+export function NavUser({ user }: { user: User | undefined }) {
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   if (!user) {
     return (
@@ -48,7 +50,7 @@ export function NavUser({ user }: { user: User }) {
               align="end"
               sideOffset={4}
             >
-              <UserAuthForm />
+              <SignInButton />
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -116,7 +118,13 @@ export function NavUser({ user }: { user: User }) {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={async () => {
-                await signOutAction();
+                await authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.refresh();
+                    },
+                  },
+                });
               }}
             >
               <LogOut />

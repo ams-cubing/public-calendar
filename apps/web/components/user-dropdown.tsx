@@ -1,9 +1,7 @@
 "use client";
 
 import { LogOut, UserCheck } from "lucide-react";
-import type { User } from "next-auth";
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
-import { signOutAction } from "@/app/actions";
 import {
   Avatar,
   AvatarImage,
@@ -17,9 +15,14 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { Badge } from "@workspace/ui/components/badge";
 import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import type { User } from "@/db/schema";
 
 export function UserDropdown({ user }: { user: User }) {
   const isMobile = useIsMobile();
+
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -40,7 +43,13 @@ export function UserDropdown({ user }: { user: User }) {
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={async () => {
-            await signOutAction();
+            await authClient.signOut({
+              fetchOptions: {
+                onSuccess: () => {
+                  router.refresh();
+                },
+              },
+            });
           }}
         >
           <LogOut />

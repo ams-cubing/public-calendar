@@ -7,8 +7,9 @@ import {
   competitionOrganizers,
 } from "@/db/schema";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const updateCompetitionSchema = z
   .object({
@@ -69,7 +70,11 @@ export async function updateCompetition(
   data: z.infer<typeof updateCompetitionSchema>,
 ) {
   try {
-    const session = await auth();
+    const headersList = await headers();
+
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
 
     if (!session?.user?.wcaId) {
       return {

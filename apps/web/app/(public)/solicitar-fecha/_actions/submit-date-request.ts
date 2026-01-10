@@ -4,7 +4,7 @@ import { db } from "@/db";
 import {
   competitions,
   unavailability,
-  users,
+  user,
   states,
   competitionDelegates,
   competitionOrganizers,
@@ -12,7 +12,8 @@ import {
 import { z } from "zod";
 import { eq, and, lte, gte, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const dateRequestSchema = z
   .object({
@@ -37,7 +38,12 @@ export async function submitDateRequest(
   data: z.infer<typeof dateRequestSchema>,
 ) {
   try {
-    const session = await auth();
+    const headersList = await headers();
+
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
+
     // Validate input
     const validatedData = dateRequestSchema.parse(data);
 
@@ -57,11 +63,8 @@ export async function submitDateRequest(
     }
 
     // 2. Find delegates in the same region
-    const delegatesInRegion = await db.query.users.findMany({
-      where: and(
-        eq(users.regionId, state.regionId),
-        eq(users.role, "delegate"),
-      ),
+    const delegatesInRegion = await db.query.user.findMany({
+      where: and(eq(user.regionId, state.regionId), eq(user.role, "delegate")),
     });
 
     // 3. Check delegate availability for the requested dates

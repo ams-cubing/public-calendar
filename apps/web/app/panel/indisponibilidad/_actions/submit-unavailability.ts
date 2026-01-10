@@ -2,8 +2,9 @@
 
 import { db } from "@/db";
 import { unavailability } from "@/db/schema";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 export async function submitUnavailability(data: {
   startDate: Date;
@@ -11,7 +12,11 @@ export async function submitUnavailability(data: {
   note?: string;
 }) {
   try {
-    const session = await auth();
+    const headersList = await headers();
+
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
 
     if (!session?.user?.wcaId) {
       return {

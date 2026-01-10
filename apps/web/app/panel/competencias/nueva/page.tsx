@@ -5,7 +5,7 @@ import { Suspense } from "react";
 export default async function Page() {
   const unavailableDates = [] as Date[];
 
-  const delegates = await db.query.users.findMany({
+  const delegates = await db.query.user.findMany({
     where: (user, { eq }) => eq(user.role, "delegate"),
     orderBy: (user, { asc }) => asc(user.name),
   });

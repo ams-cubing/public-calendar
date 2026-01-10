@@ -1,2 +1,0 @@
-ALTER TABLE "competition" ADD COLUMN "requested_by" text NOT NULL;--> statement-breakpoint
-ALTER TABLE "competition" ADD CONSTRAINT "competition_requested_by_user_wca_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."user"("wca_id") ON DELETE no action ON UPDATE no action;

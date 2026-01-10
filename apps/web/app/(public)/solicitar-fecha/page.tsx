@@ -1,11 +1,16 @@
-import { auth } from "@/auth";
 import { DateRequestForm } from "./_components/date-request-form";
 import { db } from "@/db";
+import { auth } from "@/lib/auth";
 import { formatDistance } from "date-fns";
 import { es } from "date-fns/locale";
+import { headers } from "next/headers";
 
 export default async function Page() {
-  const session = await auth();
+  const headersList = await headers();
+
+  const session = await auth.api.getSession({
+    headers: headersList,
+  });
 
   if (!session) {
     return (
