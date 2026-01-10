@@ -6,11 +6,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-export async function submitUnavailability(data: {
-  startDate: Date;
-  endDate: Date;
-  note?: string;
-}) {
+export async function submitUnavailability(data: { dates: Date[] }) {
   try {
     const headersList = await headers();
 
@@ -18,20 +14,31 @@ export async function submitUnavailability(data: {
       headers: headersList,
     });
 
-    if (!session?.user?.wcaId) {
+    const userWcaId = session?.user?.wcaId;
+
+    if (!userWcaId) {
       return {
         success: false,
         message: "Debes iniciar sesión para registrar indisponibilidad",
       };
     }
 
-    // Insert unavailability record
-    await db.insert(unavailability).values({
-      userWcaId: session.user.wcaId,
-      startDate: data.startDate.toISOString().split("T")[0]!,
-      endDate: data.endDate.toISOString().split("T")[0]!,
-      note: data.note || null,
-    });
+    if (!data.dates || data.dates.length === 0) {
+      return {
+        success: false,
+        message: "No se seleccionaron fechas",
+      };
+    }
+
+    // Prepare records for batch insertion
+    // Each selected date creates a record where startDate == endDate (single day)
+    const values = data.dates.map((date) => ({
+      userWcaId: userWcaId,
+      date: date.toISOString().split("T")[0]!,
+    }));
+
+    // Insert all unavailability records
+    await db.insert(unavailability).values(values);
 
     revalidatePath("/solicitar-fecha");
 

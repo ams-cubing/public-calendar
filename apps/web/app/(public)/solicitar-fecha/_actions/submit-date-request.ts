@@ -79,8 +79,8 @@ export async function submitDateRequest(
         where: and(
           eq(unavailability.userWcaId, delegate.wcaId),
           // Check if the requested dates overlap with unavailable periods
-          lte(unavailability.startDate, endDateStr!),
-          gte(unavailability.endDate, startDateStr!),
+          eq(unavailability.date, startDateStr!),
+          eq(unavailability.date, endDateStr!),
         ),
       });
 

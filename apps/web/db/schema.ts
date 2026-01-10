@@ -196,9 +196,7 @@ export const unavailability = pgTable("unavailability", {
   userWcaId: text("user_wca_id")
     .notNull()
     .references(() => user.wcaId, { onDelete: "cascade" }),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
-  note: text("note"),
+  date: date("date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

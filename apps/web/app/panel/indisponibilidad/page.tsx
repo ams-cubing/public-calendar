@@ -1,21 +1,20 @@
-import { auth } from "@/lib/auth";
+import { db } from "@/db";
 import { UnavailabilityForm } from "./_components/unavailability";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export default async function Page() {
-  const headersList = await headers();
-
   const session = await auth.api.getSession({
-    headers: headersList,
+    headers: await headers(),
   });
 
-  if (!session) {
-    return (
-      <main className="p-6">
-        <div>Inicia sesión para solicitar una fecha de competencia.</div>
-      </main>
-    );
-  }
+  const unavailabilityDates = await db.query.unavailability.findMany({
+    where: (unavailability, { eq }) =>
+      eq(unavailability.userWcaId, session?.user.wcaId ?? ""),
+    columns: {
+      date: true,
+    },
+  });
 
   return (
     <main className="p-6">
@@ -26,7 +25,7 @@ export default async function Page() {
             Complete el formulario para registrar su indisponibilidad.
           </p>
         </div>
-        <UnavailabilityForm />
+        <UnavailabilityForm unavailabilityDates={unavailabilityDates} />
       </div>
     </main>
   );
