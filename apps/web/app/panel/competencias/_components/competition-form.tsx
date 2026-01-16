@@ -180,11 +180,11 @@ type Competition = {
 };
 
 export function CompetitionForm({
-  unavailableDates,
+  availableDates,
   delegates,
   competition,
 }: {
-  unavailableDates: Date[];
+  availableDates: Date[];
   delegates: Array<{ wcaId: string; name: string; regionId: string | null }>;
   competition?: Competition;
 }) {
@@ -441,7 +441,7 @@ export function CompetitionForm({
                   !isEditing && (date < minDate || date > maxDate)
                 }
                 modifiers={{
-                  unavailable: unavailableDates,
+                  unavailable: availableDates,
                 }}
                 modifiersClassNames={{
                   unavailable: "[&>button]:line-through opacity-100",

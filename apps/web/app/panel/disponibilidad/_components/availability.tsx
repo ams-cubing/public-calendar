@@ -16,28 +16,28 @@ import {
 import { Calendar } from "@workspace/ui/components/calendar";
 import { toast } from "sonner";
 import { es } from "react-day-picker/locale";
-import { submitUnavailability } from "../_actions/submit-unavailability";
+import { submitAvailability } from "../_actions/submit-availability";
 import { addWeeks } from "date-fns";
 
-const unavailabilitySchema = z.object({
+const availabilitySchema = z.object({
   dates: z.array(z.date()).min(1, "Selecciona al menos una fecha"),
 });
 
-type UnavailabilityFormValues = z.infer<typeof unavailabilitySchema>;
+type AvailabilityFormValues = z.infer<typeof availabilitySchema>;
 
-interface UnavailabilityFormProps {
-  unavailabilityDates: { date: string }[];
+interface AvailabilityFormProps {
+  availabilityDates: { date: string }[];
 }
 
-export function UnavailabilityForm({
-  unavailabilityDates,
-}: UnavailabilityFormProps) {
+export function AvailabilityForm({
+  availabilityDates,
+}: AvailabilityFormProps) {
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<UnavailabilityFormValues>({
-    resolver: zodResolver(unavailabilitySchema),
+  const form = useForm<AvailabilityFormValues>({
+    resolver: zodResolver(availabilitySchema),
     defaultValues: {
-      dates: unavailabilityDates.map((d) => {
+      dates: availabilityDates.map((d) => {
         const [year, month, day] = d.date.split("-").map(Number);
         const date = new Date(year!, month! - 1, day);
         return date;
@@ -45,10 +45,10 @@ export function UnavailabilityForm({
     },
   });
 
-  async function onSubmit(data: UnavailabilityFormValues) {
+  async function onSubmit(data: AvailabilityFormValues) {
     startTransition(async () => {
       try {
-        const result = await submitUnavailability(data);
+        const result = await submitAvailability(data);
 
         if (result.success) {
           toast.success(
@@ -57,11 +57,11 @@ export function UnavailabilityForm({
           form.reset({ dates: data.dates });
         } else {
           toast.error(
-            result.message || "Error al registrar la indisponibilidad",
+            result.message || "Error al registrar la disponibilidad",
           );
         }
       } catch {
-        toast.error("Error al registrar la indisponibilidad");
+        toast.error("Error al registrar la disponibilidad");
       }
     });
   }

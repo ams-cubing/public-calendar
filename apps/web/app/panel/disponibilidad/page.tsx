@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { UnavailabilityForm } from "./_components/unavailability";
+import { AvailabilityForm } from "./_components/availability";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -8,9 +8,9 @@ export default async function Page() {
     headers: await headers(),
   });
 
-  const unavailabilityDates = await db.query.unavailability.findMany({
-    where: (unavailability, { eq }) =>
-      eq(unavailability.userWcaId, session?.user.wcaId ?? ""),
+  const availabilityDates = await db.query.availability.findMany({
+    where: (availability, { eq }) =>
+      eq(availability.userWcaId, session?.user.wcaId ?? ""),
     columns: {
       date: true,
     },
@@ -20,12 +20,12 @@ export default async function Page() {
     <main className="p-6">
       <div className="max-w-2xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Registrar Indisponibilidad</h1>
+          <h1 className="text-3xl font-bold">Registrar Disponibilidad</h1>
           <p className="text-muted-foreground mt-2">
-            Complete el formulario para registrar su indisponibilidad.
+            Complete el formulario para registrar su disponibilidad.
           </p>
         </div>
-        <UnavailabilityForm unavailabilityDates={unavailabilityDates} />
+        <AvailabilityForm availabilityDates={availabilityDates} />
       </div>
     </main>
   );

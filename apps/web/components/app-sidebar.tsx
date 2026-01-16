@@ -48,8 +48,8 @@ const data = {
       icon: PieChart,
     },
     {
-      name: "Indisponibilidad",
-      url: "/panel/indisponibilidad",
+      name: "Disponibilidad",
+      url: "/panel/disponibilidad",
       icon: Map,
     },
   ],

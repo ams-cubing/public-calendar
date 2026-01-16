@@ -3,7 +3,6 @@
 import { db } from "@/db";
 import {
   competitions,
-  unavailability,
   user,
   states,
   competitionDelegates,
@@ -74,20 +73,6 @@ export async function submitDateRequest(
     let assignedDelegate = null;
 
     for (const delegate of delegatesInRegion) {
-      // Check if delegate has marked themselves as unavailable for this period
-      const unavailabilityResult = await db.query.unavailability.findFirst({
-        where: and(
-          eq(unavailability.userWcaId, delegate.wcaId),
-          // Check if the requested dates overlap with unavailable periods
-          eq(unavailability.date, startDateStr!),
-          eq(unavailability.date, endDateStr!),
-        ),
-      });
-
-      if (unavailabilityResult) {
-        continue; // Skip this delegate, they're unavailable
-      }
-
       // Check if delegate is already assigned to another competition during these dates
       const delegateCompetitionIds = await db
         .select({ competitionId: competitionDelegates.competitionId })

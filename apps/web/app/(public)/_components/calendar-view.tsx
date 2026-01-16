@@ -12,9 +12,9 @@ import {
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { useRouter } from "next/navigation";
-import { addWeeks } from "date-fns";
-import { getFeriados } from "mx-feriados";
+import { addMonths } from "date-fns";
 import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
+import type { Holiday } from "@/db/schema";
 
 interface Competition {
   id: number;
@@ -26,12 +26,12 @@ interface Competition {
   startDate: string;
   endDate: string;
   statusPublic:
-    | "open"
-    | "reserved"
-    | "confirmed"
-    | "announced"
-    | "suspended"
-    | "unavailable";
+  | "open"
+  | "reserved"
+  | "confirmed"
+  | "announced"
+  | "suspended"
+  | "unavailable";
   statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
   createdAt: Date;
   updatedAt: Date;
@@ -49,10 +49,14 @@ interface Competition {
 
 interface CalendarViewProps {
   competitions: Competition[];
+  holidays: Holiday[];
 }
 
-export function CalendarView({ competitions }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function CalendarView({ competitions, holidays }: CalendarViewProps) {
+  const [currentDate, setCurrentDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 3, 1);
+  });
   const [selectedCompetition, setSelectedCompetition] =
     useState<Competition | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,15 +70,13 @@ export function CalendarView({ competitions }: CalendarViewProps) {
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
 
-  const minDate = addWeeks(new Date(), 5);
-  const maxDate = addWeeks(new Date(), 27);
-
-  const holidays = getFeriados(year);
+  const minDate = addMonths(new Date(), 3);
+  const maxDate = addMonths(new Date(), 12);
 
   // Add this helper function
   const getHolidayForDay = (day: number) => {
     return holidays.find((holiday) => {
-      const holidayDate = new Date(holiday.fechaObservada);
+      const holidayDate = new Date(holiday.date);
       return (
         holidayDate.getDate() === day &&
         holidayDate.getMonth() === month &&
@@ -154,6 +156,13 @@ export function CalendarView({ competitions }: CalendarViewProps) {
 
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+  const today = new Date();
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 3;
+
+  const goToToday = () => {
+    setCurrentDate(new Date(today.getFullYear(), today.getMonth() + 3, 1));
+  };
+
   return (
     <>
       <div className="bg-background">
@@ -161,26 +170,35 @@ export function CalendarView({ competitions }: CalendarViewProps) {
           <h2 className="text-2xl font-bold text-primary">
             {monthNames[month]} {year}
           </h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={previousMonth}
-              size="icon"
-              disabled={
-                year === new Date().getFullYear() &&
-                month === new Date().getMonth()
-              }
-            >
-              <ChevronLeft />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={nextMonth}
-              size="icon"
-              disabled={year === new Date().getFullYear() + 1 && month === 11}
-            >
-              <ChevronRight />
-            </Button>
+          <div className="flex gap-4">
+            {!isCurrentMonth && (
+              <Button
+                onClick={goToToday}
+              >
+                <Calendar />
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={previousMonth}
+                size="icon"
+                disabled={
+                  year === new Date().getFullYear() &&
+                  month === new Date().getMonth()
+                }
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={nextMonth}
+                size="icon"
+                disabled={year === new Date().getFullYear() + 1 && month === 11}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -237,9 +255,9 @@ export function CalendarView({ competitions }: CalendarViewProps) {
                 {holiday && (
                   <div
                     className="text-xs text-red-600 dark:text-red-400 font-medium mb-1 truncate"
-                    title={holiday.nombre}
+                    title={holiday.name}
                   >
-                    {holiday.nombre}
+                    {holiday.name}
                   </div>
                 )}
                 <div className="space-y-1">
@@ -285,8 +303,8 @@ export function CalendarView({ competitions }: CalendarViewProps) {
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                      <> - {formatDate(selectedCompetition.endDate)}</>
-                    )}
+                        <> - {formatDate(selectedCompetition.endDate)}</>
+                      )}
                   </p>
                 </div>
               </div>

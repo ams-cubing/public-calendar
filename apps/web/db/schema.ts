@@ -8,6 +8,7 @@ import {
   pgEnum,
   serial,
   date,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -99,7 +100,8 @@ export const userRelations = relations(user, ({ one, many }) => ({
   }),
   delegatedCompetitions: many(competitionDelegates),
   organizedCompetitions: many(competitionOrganizers),
-  unavailability: many(unavailability),
+  availability: many(availability),
+  activityLogs: many(logs), 
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -158,6 +160,7 @@ export const competitions = pgTable("competition", {
   requestedBy: text("requested_by").references(() => user.wcaId),
 
   trelloUrl: text("trello_url"),
+  wcaCompetitionUrl: text("wca_competition_url"),
 
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
@@ -191,7 +194,7 @@ export const competitionOrganizers = pgTable("competition_organizer", {
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
-export const unavailability = pgTable("unavailability", {
+export const availability = pgTable("availability", {
   id: serial("id").primaryKey(),
   userWcaId: text("user_wca_id")
     .notNull()
@@ -199,6 +202,31 @@ export const unavailability = pgTable("unavailability", {
   date: date("date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const holidays = pgTable("holiday", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  date: date("date").notNull(),
+  official: boolean("official").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Holiday = InferSelectModel<typeof holidays>;
+
+export const logs = pgTable("log", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  actorId: text("actor_id")
+    .notNull()
+    .references(() => user.id),
+  details: jsonb("details"), 
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("log_target_idx").on(table.targetType, table.targetId),
+  index("log_actor_idx").on(table.actorId)
+]);
 
 export const statesRelations = relations(states, ({ one, many }) => ({
   region: one(regions, {
@@ -252,3 +280,10 @@ export const competitionOrganizersRelations = relations(
     }),
   }),
 );
+
+export const logsRelations = relations(logs, ({ one }) => ({
+  actor: one(user, {
+    fields: [logs.actorId],
+    references: [user.id],
+  }),
+}));

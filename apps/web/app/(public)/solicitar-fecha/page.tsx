@@ -20,19 +20,19 @@ export default async function Page() {
     );
   }
 
-  // Check recent requests (e.g., last 24 hours)
+  // Check recent requests (e.g., last 7 days)
   const recentRequestsCount = await db.query.competitions.findMany({
     where: (competitions, { and, gte, eq }) =>
       and(
         eq(competitions.requestedBy, session.user.wcaId),
-        gte(competitions.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+        gte(competitions.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), // 7 days in milliseconds
       ),
   });
 
-  const MAX_REQUESTS_PER_DAY = 3;
-  const canSubmit = recentRequestsCount.length < MAX_REQUESTS_PER_DAY;
+  const MAX_REQUESTS_PER_WEEK = 3;
+  const canSubmit = recentRequestsCount.length < MAX_REQUESTS_PER_WEEK;
 
-  const unavailableDates = [] as Date[];
+  const availableDates = [] as Date[];
 
   return (
     <main className="p-6">
@@ -45,17 +45,17 @@ export default async function Page() {
           </p>
         </div>
         {canSubmit ? (
-          <DateRequestForm unavailableDates={unavailableDates} />
+          <DateRequestForm availableDates={availableDates} />
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 dark:border-yellow-700 dark:bg-yellow-900 rounded-lg p-4">
             <p className="text-yellow-800 dark:text-yellow-300">
-              Has alcanzado el límite de solicitudes por día (
-              {MAX_REQUESTS_PER_DAY}). Por favor, intenta nuevamente en{" "}
+              Has alcanzado el límite de solicitudes por semana (
+              {MAX_REQUESTS_PER_WEEK}). Por favor, intenta nuevamente en{" "}
               {formatDistance(
                 new Date(
                   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                   recentRequestsCount[0]?.createdAt?.getTime()! +
-                    24 * 60 * 60 * 1000,
+                    7 * 24 * 60 * 60 * 1000,
                 ),
                 new Date(),
                 {

@@ -31,7 +31,7 @@ export default async function Page(props: PageProps) {
   return (
     <main className="sm:p-6 py-6 px-2">
       <div className="max-w-6xl mx-auto space-y-8">
-        <CalendarView competitions={competitions} />
+        <CalendarView competitions={competitions} holidays={[]} />
       </div>
     </main>
   );

@@ -56,9 +56,6 @@ importers:
       lucide-react:
         specifier: ^0.548.0
         version: 0.548.0(react@19.2.1)
-      mx-feriados:
-        specifier: ^1.0.4
-        version: 1.0.4
       next:
         specifier: ^16.0.7
         version: 16.0.7(react-dom@19.2.1)(react@19.2.1)
@@ -3428,10 +3425,6 @@ packages:
     resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
     dev: false
 
-  /dayjs@1.11.19:
-    resolution: {integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==}
-    dev: false
-
   /debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
@@ -5189,13 +5182,6 @@ packages:
   /mute-stream@0.0.8:
     resolution: {integrity: sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==}
     dev: true
-
-  /mx-feriados@1.0.4:
-    resolution: {integrity: sha512-tcHx63xkwC3bURVNXEZGSnU1W9OGLdzj0RqZNnxkP4kVI1KsWjAxXA0nDmfVC8fP+wm4FtYKg+sw6Vsz0ewRnQ==}
-    engines: {node: '>=18.0.0'}
-    dependencies:
-      dayjs: 1.11.19
-    dev: false
 
   /nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}

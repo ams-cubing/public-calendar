@@ -97,9 +97,9 @@ const MEXICAN_STATES = [
 ];
 
 export function DateRequestForm({
-  unavailableDates,
+  availableDates,
 }: {
-  unavailableDates: Date[];
+  availableDates: Date[];
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -244,7 +244,7 @@ export function DateRequestForm({
                 }}
                 disabled={(date) => date < minDate || date > maxDate}
                 modifiers={{
-                  unavailable: unavailableDates,
+                  unavailable: availableDates,
                 }}
                 modifiersClassNames={{
                   unavailable: "[&>button]:line-through opacity-100",

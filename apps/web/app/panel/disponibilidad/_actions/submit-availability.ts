@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { unavailability } from "@/db/schema";
+import { availability } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-export async function submitUnavailability(data: { dates: Date[] }) {
+export async function submitAvailability(data: { dates: Date[] }) {
   try {
     const headersList = await headers();
 
@@ -19,7 +19,7 @@ export async function submitUnavailability(data: { dates: Date[] }) {
     if (!userWcaId) {
       return {
         success: false,
-        message: "Debes iniciar sesión para registrar indisponibilidad",
+        message: "Debes iniciar sesión para registrar disponibilidad",
       };
     }
 
@@ -37,20 +37,20 @@ export async function submitUnavailability(data: { dates: Date[] }) {
       date: date.toISOString().split("T")[0]!,
     }));
 
-    // Insert all unavailability records
-    await db.insert(unavailability).values(values);
+    // Insert all availability records
+    await db.insert(availability).values(values);
 
     revalidatePath("/solicitar-fecha");
 
     return {
       success: true,
-      message: "Indisponibilidad registrada exitosamente",
+      message: "Disponibilidad registrada exitosamente",
     };
   } catch (error) {
-    console.error("Error submitting unavailability:", error);
+    console.error("Error submitting availability:", error);
     return {
       success: false,
-      message: "Error al registrar la indisponibilidad",
+      message: "Error al registrar la disponibilidad",
     };
   }
 }
