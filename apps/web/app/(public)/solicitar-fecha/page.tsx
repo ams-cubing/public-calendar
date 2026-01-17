@@ -1,11 +1,19 @@
+import { availability, regions, states, user } from "@/db/schema";
 import { DateRequestForm } from "./_components/date-request-form";
 import { db } from "@/db";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { formatDistance } from "date-fns";
 import { es } from "date-fns/locale";
 import { headers } from "next/headers";
 
-export default async function Page() {
+interface PageProps {
+  searchParams?: Promise<{
+    estado?: string;
+  }>;
+}
+
+export default async function Page(props: PageProps) {
   const headersList = await headers();
 
   const session = await auth.api.getSession({
@@ -35,7 +43,28 @@ export default async function Page() {
   const MAX_REQUESTS_PER_WEEK = 3;
   const canSubmit = recentRequestsCount.length < MAX_REQUESTS_PER_WEEK;
 
-  const availableDates = [] as Date[];
+  const searchParams = await props.searchParams;
+
+  const stateFilter = searchParams?.estado;
+
+  const availabilityData = stateFilter ? await db.select({
+    date: availability.date,
+  })
+    .from(availability)
+    .innerJoin(
+      user, eq(availability.userWcaId, user.wcaId)
+    )
+    .innerJoin(
+      regions, eq(user.regionId, regions.id)
+    )
+    .innerJoin(
+      states, eq(regions.id, states.regionId)
+    )
+    .where(
+      eq(states.id, stateFilter)
+    )
+    .orderBy(availability.date)
+    .groupBy(availability.date) : [];
 
   return (
     <main className="p-6">
@@ -48,7 +77,7 @@ export default async function Page() {
           </p>
         </div>
         {canSubmit ? (
-          <DateRequestForm availableDates={availableDates} />
+          <DateRequestForm availability={availabilityData} />
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 dark:border-yellow-700 dark:bg-yellow-900 rounded-lg p-4">
             <p className="text-yellow-800 dark:text-yellow-300">
@@ -58,7 +87,7 @@ export default async function Page() {
                 new Date(
                   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                   recentRequestsCount[0]?.createdAt?.getTime()! +
-                    7 * 24 * 60 * 60 * 1000,
+                  7 * 24 * 60 * 60 * 1000,
                 ),
                 new Date(),
                 {

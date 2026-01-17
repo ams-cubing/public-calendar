@@ -36,7 +36,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { submitDateRequest } from "../_actions/submit-date-request";
 import { toast } from "sonner";
 import { es } from "react-day-picker/locale";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
 
 const dateRequestSchema = z
@@ -97,44 +97,57 @@ const MEXICAN_STATES = [
 ];
 
 export function DateRequestForm({
-  availableDates,
+  availability,
 }: {
-  availableDates: Date[];
+  availability: {
+    date: string;
+  }[];
 }) {
+  const availableDates = availability.map((a) => new Date(a.date));
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const date = searchParams.get("fecha");
+  const state = searchParams.get("estado");
 
   const minDate = addMonths(new Date(), 3);
-  const maxDate = addMonths(new Date(), 12);
+  const maxDate = availableDates[availableDates.length - 1];
+
+  // normalize min/max to midnight
+  minDate.setHours(0, 0, 0, 0);
+  if (maxDate) maxDate.setHours(0, 0, 0, 0);
 
   const initialDate = date
     ? (() => {
-        const [year, month, day] = date.split("-").map(Number);
-        const parsedDate = new Date(year!, month! - 1, day);
+      const [year, month, day] = date.split("-").map(Number);
+      const parsedDate = new Date(year!, month! - 1, day);
 
-        // Validate that the date is within the allowed range and is a weekend
-        const dayOfWeek = parsedDate.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        if (parsedDate < minDate || parsedDate > maxDate || !isWeekend) {
-          return undefined;
-        }
+      // Validate that the date is within the allowed range and is a weekend
+      const dayOfWeek = parsedDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      if (parsedDate < minDate || parsedDate > maxDate! || !isWeekend) {
+        return undefined;
+      }
 
-        return parsedDate;
-      })()
+      return parsedDate;
+    })()
     : undefined;
 
   const form = useForm<DateRequestFormValues>({
     resolver: zodResolver(dateRequestSchema),
     defaultValues: {
       city: "",
-      stateId: "",
+      stateId: state || "",
       startDate: initialDate,
       endDate: initialDate,
     },
   });
+
+  const stateSelected = Boolean(form.watch("stateId"));
 
   async function onSubmit(data: DateRequestFormValues) {
     setIsSubmitting(true);
@@ -157,49 +170,59 @@ export function DateRequestForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem className="flex flex-col items-start">
-                <FormLabel>Ciudad</FormLabel>
+        <FormField
+          control={form.control}
+          name="stateId"
+          render={({ field }) => (
+            <FormItem className="flex flex-col items-start">
+              <FormLabel>Estado</FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  // update form state
+                  field.onChange(value);
+                  // reflect selection in URL (estado)
+                  const params = new URLSearchParams(searchParams?.toString() || "");
+                  if (!value) params.delete("estado");
+                  else params.set("estado", value);
+                  const q = params.toString();
+                  router.replace(`${pathname}${q ? `?${q}` : ""}`);
+                }}
+                defaultValue={field.value}
+              >
                 <FormControl>
-                  <Input placeholder="Guadalajara" {...field} />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona un estado" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="stateId"
-            render={({ field }) => (
-              <FormItem className="flex flex-col items-start">
-                <FormLabel>Estado</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona un estado" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {MEXICAN_STATES.map((state) => (
-                      <SelectItem key={state.id} value={state.id}>
-                        {state.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                <SelectContent>
+                  {MEXICAN_STATES.map((state) => (
+                    <SelectItem key={state.id} value={state.id}>
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+  
+        <FormField
+          control={form.control}
+          name="city"
+          render={({ field }) => (
+            <FormItem className="flex flex-col items-start">
+              <FormLabel>Ciudad</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Guadalajara"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormItem className="flex flex-col">
           <FormLabel>Fechas</FormLabel>
@@ -208,13 +231,15 @@ export function DateRequestForm({
               <FormControl>
                 <Button
                   variant="outline"
+                  disabled={!stateSelected}
                   data-invalid={
                     !!form.formState.errors.startDate ||
                     !!form.formState.errors.endDate
                   }
                   className={cn(
                     "w-full pl-3 text-left font-normal data-[invalid=true]:ring-2 data-[invalid=true]:ring-destructive/20 dark:data-[invalid=true]:ring-destructive/40 data-[invalid=true]:border-destructive",
-                    !form.watch("startDate") && "text-muted-foreground",
+                    (!form.watch("startDate") || !stateSelected) &&
+                    "text-muted-foreground",
                   )}
                 >
                   {form.watch("startDate") && form.watch("endDate") ? (
@@ -223,7 +248,9 @@ export function DateRequestForm({
                       {format(form.watch("endDate"), "PPP", { locale: es })}
                     </>
                   ) : (
-                    <span>Selecciona la fecha</span>
+                    <span>
+                      {stateSelected ? "Selecciona la fecha" : "Selecciona un estado primero"}
+                    </span>
                   )}
                   <CalendarIcon className="ml-auto opacity-50" />
                 </Button>
@@ -237,6 +264,7 @@ export function DateRequestForm({
                   to: form.watch("endDate"),
                 }}
                 onSelect={(range: DateRange | undefined) => {
+                  if (!stateSelected) return;
                   if (range?.from) {
                     form.setValue("startDate", range.from);
                   }
@@ -245,13 +273,14 @@ export function DateRequestForm({
                   }
                 }}
                 disabled={(date) => {
+                  if (!stateSelected) return true;
                   const day = date.getDay();
                   const isWeekend = day === 0 || day === 6;
-                  const isOutOfRange = date < minDate || date > maxDate;
+                  const isOutOfRange = date < minDate || date > maxDate!;
                   return !isWeekend || isOutOfRange;
                 }}
                 modifiers={{
-                  unavailable: availableDates,
+                  // unavailable: unavailableDates,
                 }}
                 modifiersClassNames={{
                   unavailable: "[&>button]:line-through opacity-100",
@@ -269,7 +298,7 @@ export function DateRequestForm({
           </FormMessage>
         </FormItem>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full" disabled={isSubmitting || !stateSelected}>
           {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
         </Button>
       </form>

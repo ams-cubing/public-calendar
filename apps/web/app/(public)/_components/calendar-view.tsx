@@ -316,7 +316,7 @@ export function CalendarView({
                       )}
                       title={`Competencia en ${comp.state.region.displayName}`}
                     >
-                      Competencia en {comp.state.region.displayName}
+                      {comp.statusPublic === "announced" ? comp.name : `Competencia en ${comp.state.region.displayName}`}
                     </div>
                   ))}
                 </div>

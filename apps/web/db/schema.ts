@@ -149,6 +149,8 @@ export const regions = pgTable("region", {
   mapColor: text("map_color").notNull(),
 });
 
+export type Region = InferSelectModel<typeof regions>;
+
 export const competitions = pgTable("competition", {
   id: serial("id").primaryKey(),
   name: text("name"),
