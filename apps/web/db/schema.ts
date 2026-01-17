@@ -1,4 +1,5 @@
 import { InferSelectModel, relations } from "drizzle-orm";
+import { unique } from "drizzle-orm/pg-core";
 import {
   pgTable,
   text,
@@ -101,7 +102,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   delegatedCompetitions: many(competitionDelegates),
   organizedCompetitions: many(competitionOrganizers),
   availability: many(availability),
-  activityLogs: many(logs), 
+  activityLogs: many(logs),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -194,14 +195,21 @@ export const competitionOrganizers = pgTable("competition_organizer", {
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
-export const availability = pgTable("availability", {
-  id: serial("id").primaryKey(),
-  userWcaId: text("user_wca_id")
-    .notNull()
-    .references(() => user.wcaId, { onDelete: "cascade" }),
-  date: date("date").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const availability = pgTable(
+  "availability",
+  {
+    id: serial("id").primaryKey(),
+    userWcaId: text("user_wca_id")
+      .notNull()
+      .references(() => user.wcaId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("availability_user_date_idx").on(table.userWcaId, table.date),
+    unique().on(table.userWcaId, table.date),
+  ],
+);
 
 export const holidays = pgTable("holiday", {
   id: serial("id").primaryKey(),
@@ -213,20 +221,24 @@ export const holidays = pgTable("holiday", {
 
 export type Holiday = InferSelectModel<typeof holidays>;
 
-export const logs = pgTable("log", {
-  id: serial("id").primaryKey(),
-  action: text("action").notNull(),
-  targetType: text("target_type").notNull(),
-  targetId: text("target_id").notNull(),
-  actorId: text("actor_id")
-    .notNull()
-    .references(() => user.id),
-  details: jsonb("details"), 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("log_target_idx").on(table.targetType, table.targetId),
-  index("log_actor_idx").on(table.actorId)
-]);
+export const logs = pgTable(
+  "log",
+  {
+    id: serial("id").primaryKey(),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id").notNull(),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => user.id),
+    details: jsonb("details"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("log_target_idx").on(table.targetType, table.targetId),
+    index("log_actor_idx").on(table.actorId),
+  ],
+);
 
 export const statesRelations = relations(states, ({ one, many }) => ({
   region: one(regions, {

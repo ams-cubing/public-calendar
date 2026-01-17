@@ -25,7 +25,10 @@ export default async function Page() {
     where: (competitions, { and, gte, eq }) =>
       and(
         eq(competitions.requestedBy, session.user.wcaId),
-        gte(competitions.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), // 7 days in milliseconds
+        gte(
+          competitions.createdAt,
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        ), // 7 days in milliseconds
       ),
   });
 

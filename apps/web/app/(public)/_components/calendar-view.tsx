@@ -26,12 +26,12 @@ interface Competition {
   startDate: string;
   endDate: string;
   statusPublic:
-  | "open"
-  | "reserved"
-  | "confirmed"
-  | "announced"
-  | "suspended"
-  | "unavailable";
+    | "open"
+    | "reserved"
+    | "confirmed"
+    | "announced"
+    | "suspended"
+    | "unavailable";
   statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
   createdAt: Date;
   updatedAt: Date;
@@ -50,11 +50,20 @@ interface Competition {
 interface CalendarViewProps {
   competitions: Competition[];
   holidays: Holiday[];
+  availability: {
+    date: string;
+  }[];
 }
 
-export function CalendarView({ competitions, holidays }: CalendarViewProps) {
+export function CalendarView({
+  competitions,
+  holidays,
+  availability,
+}: CalendarViewProps) {
+  const availableDates = availability.map((a) => new Date(a.date));
+
+  const now = new Date();
   const [currentDate, setCurrentDate] = useState(() => {
-    const now = new Date();
     return new Date(now.getFullYear(), now.getMonth() + 3, 1);
   });
   const [selectedCompetition, setSelectedCompetition] =
@@ -71,7 +80,7 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
   const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
 
   const minDate = addMonths(new Date(), 3);
-  const maxDate = addMonths(new Date(), 12);
+  const maxDate = availableDates[availableDates.length - 1];
 
   // Add this helper function
   const getHolidayForDay = (day: number) => {
@@ -94,7 +103,7 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
   };
 
   const getCompetitionsForDay = (day: number) => {
-    const date = new Date(year, month, day);
+    const date = new Date(Date.UTC(year, month, day));
     const dateStart = new Date(date.setHours(0, 0, 0, 0));
     const dateEnd = new Date(date.setHours(23, 59, 59, 999));
 
@@ -126,15 +135,45 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
     });
   };
 
+  const isDateAvailable = (day: number) => {
+    const dateISO = new Date(Date.UTC(year, month, day))
+      .toISOString()
+      .split("T")[0];
+
+    const availableDateStrings = availability.map((a) => a.date);
+
+    return availableDateStrings.includes(dateISO!);
+  };
+
+  const isDateDefinitelyUnavailable = (day: number) => {
+    const date = new Date(Date.UTC(year, month, day));
+    return date < minDate || (maxDate ? date > maxDate : false);
+  };
+
+  // New function to check for conditionally unavailable dates (e.g., weekdays)
+  const isDateConditionallyUnavailable = (day: number) => {
+    const date = new Date(Date.UTC(year, month, day));
+
+    // If date is outside min/max range, it's definitely unavailable (not conditional)
+    if (date < minDate || (maxDate && date > maxDate)) {
+      return false;
+    }
+
+    // Within the valid range, check if it's NOT in availableDates
+    return !isDateAvailable(day);
+  };
+
+  // Update the isDateDisabled function to include both checks
   const isDateDisabled = (day: number) => {
-    const date = new Date(year, month, day);
-    return date < minDate || date > maxDate;
+    return (
+      isDateDefinitelyUnavailable(day) || isDateConditionallyUnavailable(day)
+    );
   };
 
   const handleDayClick = (day: number) => {
     if (isDateDisabled(day)) return;
 
-    const date = new Date(year, month, day);
+    const date = new Date(Date.UTC(year, month, day));
     const formattedDate = date.toISOString().split("T")[0];
     router.push(`/solicitar-fecha?fecha=${formattedDate}`);
   };
@@ -156,11 +195,11 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
 
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-  const today = new Date();
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 3;
+  const isCurrentMonth =
+    year === now.getFullYear() && month === now.getMonth() + 3;
 
   const goToToday = () => {
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth() + 3, 1));
+    setCurrentDate(new Date(now.getFullYear(), now.getMonth() + 3, 1));
   };
 
   return (
@@ -172,9 +211,7 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
           </h2>
           <div className="flex gap-4">
             {!isCurrentMonth && (
-              <Button
-                onClick={goToToday}
-              >
+              <Button onClick={goToToday}>
                 <Calendar />
               </Button>
             )}
@@ -224,37 +261,46 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
               day === new Date().getDate() &&
               month === new Date().getMonth() &&
               year === new Date().getFullYear();
-            const disabled = isDateDisabled(day);
+            const definitelyUnavailable = isDateDefinitelyUnavailable(day);
+            const conditionallyUnavailable =
+              isDateConditionallyUnavailable(day);
 
             return (
               <div
                 key={day}
-                onClick={() => handleDayClick(day)}
+                onClick={() => !definitelyUnavailable && handleDayClick(day)}
                 className={cn(
                   "min-h-24 border rounded-lg p-2 transition-colors",
-                  disabled
-                    ? "cursor-not-allowed opacity-50 bg-slate-50 dark:bg-slate-900"
-                    : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800",
+                  definitelyUnavailable
+                    ? "cursor-not-allowed opacity-50 bg-gray-200 dark:bg-slate-900" // Light gray for unavailable dates
+                    : conditionallyUnavailable
+                      ? "cursor-not-allowed opacity-75 bg-yellow-100 dark:bg-yellow-900" // Soft yellow for conditionally unavailable dates
+                      : "cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800", // Light gray hover for available dates
                   isToday
-                    ? "bg-blue-50 border-blue-300 dark:bg-blue-900 dark:border-blue-700"
-                    : "border-slate-200 dark:border-slate-700",
-                  holiday && "bg-red-50 dark:bg-red-950",
+                    ? "bg-blue-100 border-blue-400 dark:bg-blue-900 dark:border-blue-700" // Light blue for today
+                    : "border-gray-300 dark:border-slate-700", // Neutral border for other dates
+                  holiday && "bg-red-100 dark:bg-red-950", // Soft red for holidays
                 )}
               >
                 <div
                   className={cn(
                     "text-sm font-semibold mb-1",
-                    disabled && !isToday && "text-muted-foreground",
+                    definitelyUnavailable &&
+                      "text-gray-500 dark:text-muted-foreground", // Gray text for unavailable dates
+                    conditionallyUnavailable &&
+                      "text-yellow-700 dark:text-yellow-400", // Darker yellow text for conditionally unavailable dates
                     isToday
-                      ? "text-blue-600 dark:text-blue-400"
-                      : !disabled && "text-slate-700 dark:text-slate-300",
+                      ? "text-blue-700 dark:text-blue-400" // Darker blue text for today
+                      : !definitelyUnavailable &&
+                          !conditionallyUnavailable &&
+                          "text-gray-800 dark:text-slate-300", // Neutral text for available dates
                   )}
                 >
                   {day}
                 </div>
                 {holiday && (
                   <div
-                    className="text-xs text-red-600 dark:text-red-400 font-medium mb-1 truncate"
+                    className="text-xs text-red-700 dark:text-red-400 font-medium mb-1 truncate"
                     title={holiday.name}
                   >
                     {holiday.name}
@@ -303,8 +349,8 @@ export function CalendarView({ competitions, holidays }: CalendarViewProps) {
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                        <> - {formatDate(selectedCompetition.endDate)}</>
-                      )}
+                      <> - {formatDate(selectedCompetition.endDate)}</>
+                    )}
                   </p>
                 </div>
               </div>

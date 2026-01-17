@@ -1,0 +1,2 @@
+CREATE INDEX "availability_user_date_idx" ON "availability" USING btree ("user_wca_id","date");--> statement-breakpoint
+ALTER TABLE "availability" ADD CONSTRAINT "availability_user_wca_id_date_unique" UNIQUE("user_wca_id","date");

@@ -5,6 +5,7 @@ import { availability } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { and, eq } from "drizzle-orm";
 
 export async function submitAvailability(data: { dates: Date[] }) {
   try {
@@ -23,34 +24,61 @@ export async function submitAvailability(data: { dates: Date[] }) {
       };
     }
 
-    if (!data.dates || data.dates.length === 0) {
-      return {
-        success: false,
-        message: "No se seleccionaron fechas",
-      };
-    }
-
-    // Prepare records for batch insertion
-    // Each selected date creates a record where startDate == endDate (single day)
     const values = data.dates.map((date) => ({
-      userWcaId: userWcaId,
       date: date.toISOString().split("T")[0]!,
     }));
 
-    // Insert all availability records
-    await db.insert(availability).values(values);
+    const existingRows = await db
+      .select({ date: availability.date })
+      .from(availability)
+      .where(eq(availability.userWcaId, userWcaId));
+
+    const toInsert = values
+      .map((v) => v.date)
+      .filter(
+        (date) => !existingRows.find((existing) => existing.date === date),
+      );
+
+    const toDelete = existingRows
+      .map((v) => v.date)
+      .filter((date) => !values.find((newVal) => newVal.date === date));
+
+    await db.transaction(async (tx) => {
+      if (toDelete.length) {
+        for (const delDate of toDelete) {
+          await tx
+            .delete(availability)
+            .where(
+              and(
+                eq(availability.userWcaId, userWcaId),
+                eq(availability.date, delDate),
+              ),
+            );
+        }
+      }
+
+      if (toInsert.length) {
+        await tx.insert(availability).values(
+          toInsert.map((d) => ({
+            userWcaId,
+            date: d,
+          })),
+        );
+      }
+    });
 
     revalidatePath("/solicitar-fecha");
 
     return {
       success: true,
-      message: "Disponibilidad registrada exitosamente",
+      message: "Disponibilidad actualizada exitosamente",
     };
   } catch (error) {
     console.error("Error submitting availability:", error);
     return {
       success: false,
-      message: "Error al registrar la disponibilidad",
+      message: "Error al actualizar la disponibilidad",
     };
   }
 }
+// ...existing code...

@@ -36,6 +36,13 @@
       "when": 1768534103106,
       "tag": "0004_early_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768670390887,
+      "tag": "0005_many_the_hand",
+      "breakpoints": true
     }
   ]
 }

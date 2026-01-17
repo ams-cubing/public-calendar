@@ -107,16 +107,18 @@ export function DateRequestForm({
 
   const date = searchParams.get("fecha");
 
-  const minDate = addWeeks(new Date(), 5);
-  const maxDate = addMonths(new Date(), 6);
+  const minDate = addMonths(new Date(), 3);
+  const maxDate = addMonths(new Date(), 12);
 
   const initialDate = date
     ? (() => {
         const [year, month, day] = date.split("-").map(Number);
         const parsedDate = new Date(year!, month! - 1, day);
 
-        // Validate that the date is within the allowed range
-        if (parsedDate < minDate || parsedDate > maxDate) {
+        // Validate that the date is within the allowed range and is a weekend
+        const dayOfWeek = parsedDate.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        if (parsedDate < minDate || parsedDate > maxDate || !isWeekend) {
           return undefined;
         }
 
@@ -242,7 +244,12 @@ export function DateRequestForm({
                     form.setValue("endDate", range.to);
                   }
                 }}
-                disabled={(date) => date < minDate || date > maxDate}
+                disabled={(date) => {
+                  const day = date.getDay();
+                  const isWeekend = day === 0 || day === 6;
+                  const isOutOfRange = date < minDate || date > maxDate;
+                  return !isWeekend || isOutOfRange;
+                }}
                 modifiers={{
                   unavailable: availableDates,
                 }}
@@ -252,6 +259,7 @@ export function DateRequestForm({
                 autoFocus
                 locale={es}
                 numberOfMonths={2}
+                defaultMonth={minDate}
               />
             </PopoverContent>
           </Popover>

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { AvailabilityForm } from "./_components/availability";
+import { AvailabilityForm } from "./_components/availability-form";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 

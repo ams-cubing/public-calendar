@@ -28,10 +28,23 @@ export default async function Page(props: PageProps) {
     },
   });
 
+  const availability = await db.query.availability.findMany({
+    orderBy: (t, { asc }) => [asc(t.date)],
+    columns: {
+      date: true,
+    },
+  });
+
+  const holidays = await db.query.holidays.findMany();
+
   return (
     <main className="sm:p-6 py-6 px-2">
       <div className="max-w-6xl mx-auto space-y-8">
-        <CalendarView competitions={competitions} holidays={[]} />
+        <CalendarView
+          competitions={competitions}
+          holidays={holidays}
+          availability={availability}
+        />
       </div>
     </main>
   );

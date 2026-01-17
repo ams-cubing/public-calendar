@@ -29,9 +29,7 @@ interface AvailabilityFormProps {
   availabilityDates: { date: string }[];
 }
 
-export function AvailabilityForm({
-  availabilityDates,
-}: AvailabilityFormProps) {
+export function AvailabilityForm({ availabilityDates }: AvailabilityFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<AvailabilityFormValues>({
@@ -56,9 +54,7 @@ export function AvailabilityForm({
           );
           form.reset({ dates: data.dates });
         } else {
-          toast.error(
-            result.message || "Error al registrar la disponibilidad",
-          );
+          toast.error(result.message || "Error al registrar la disponibilidad");
         }
       } catch {
         toast.error("Error al registrar la disponibilidad");
@@ -92,6 +88,7 @@ export function AvailabilityForm({
                     locale={es}
                     numberOfMonths={2}
                     className="p-0"
+                    defaultMonth={addWeeks(new Date(), 3)}
                   />
                 </FormControl>
               </div>
