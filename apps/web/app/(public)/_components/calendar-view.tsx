@@ -26,12 +26,12 @@ interface Competition {
   startDate: string;
   endDate: string;
   statusPublic:
-    | "open"
-    | "reserved"
-    | "confirmed"
-    | "announced"
-    | "suspended"
-    | "unavailable";
+  | "open"
+  | "reserved"
+  | "confirmed"
+  | "announced"
+  | "suspended"
+  | "unavailable";
   statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
   createdAt: Date;
   updatedAt: Date;
@@ -82,14 +82,15 @@ export function CalendarView({
   const minDate = addMonths(new Date(), 3);
   const maxDate = availableDates[availableDates.length - 1];
 
-  // Add this helper function
   const getHolidayForDay = (day: number) => {
     return holidays.find((holiday) => {
-      const holidayDate = new Date(holiday.date);
+      const [holidayYear, holidayMonth, holidayDay] = holiday.date
+        .split("-")
+        .map(Number);
       return (
-        holidayDate.getDate() === day &&
-        holidayDate.getMonth() === month &&
-        holidayDate.getFullYear() === year
+        holidayDay === day &&
+        holidayMonth! - 1 === month &&
+        holidayYear === year
       );
     });
   };
@@ -103,9 +104,8 @@ export function CalendarView({
   };
 
   const getCompetitionsForDay = (day: number) => {
-    const date = new Date(Date.UTC(year, month, day));
-    const dateStart = new Date(date.setHours(0, 0, 0, 0));
-    const dateEnd = new Date(date.setHours(23, 59, 59, 999));
+    const dateStart = new Date(year, month, day, 0, 0, 0, 0);
+    const dateEnd = new Date(year, month, day, 23, 59, 59, 999);
 
     return competitions.filter((comp) => {
       const [startYear, startMonth, startDay] = comp.startDate
@@ -150,20 +150,16 @@ export function CalendarView({
     return date < minDate || (maxDate ? date > maxDate : false);
   };
 
-  // New function to check for conditionally unavailable dates (e.g., weekdays)
   const isDateConditionallyUnavailable = (day: number) => {
     const date = new Date(Date.UTC(year, month, day));
 
-    // If date is outside min/max range, it's definitely unavailable (not conditional)
     if (date < minDate || (maxDate && date > maxDate)) {
       return false;
     }
 
-    // Within the valid range, check if it's NOT in availableDates
     return !isDateAvailable(day);
   };
 
-  // Update the isDateDisabled function to include both checks
   const isDateDisabled = (day: number) => {
     return (
       isDateDefinitelyUnavailable(day) || isDateConditionallyUnavailable(day)
@@ -286,14 +282,14 @@ export function CalendarView({
                   className={cn(
                     "text-sm font-semibold mb-1",
                     definitelyUnavailable &&
-                      "text-gray-500 dark:text-muted-foreground", // Gray text for unavailable dates
+                    "text-gray-500 dark:text-muted-foreground", // Gray text for unavailable dates
                     conditionallyUnavailable &&
-                      "text-yellow-700 dark:text-yellow-400", // Darker yellow text for conditionally unavailable dates
+                    "text-yellow-700 dark:text-yellow-400", // Darker yellow text for conditionally unavailable dates
                     isToday
                       ? "text-blue-700 dark:text-blue-400" // Darker blue text for today
                       : !definitelyUnavailable &&
-                          !conditionallyUnavailable &&
-                          "text-gray-800 dark:text-slate-300", // Neutral text for available dates
+                      !conditionallyUnavailable &&
+                      "text-gray-800 dark:text-slate-300", // Neutral text for available dates
                   )}
                 >
                   {day}
@@ -349,8 +345,8 @@ export function CalendarView({
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                      <> - {formatDate(selectedCompetition.endDate)}</>
-                    )}
+                        <> - {formatDate(selectedCompetition.endDate)}</>
+                      )}
                   </p>
                 </div>
               </div>

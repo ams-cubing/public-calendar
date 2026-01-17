@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Frame, Map, PieChart } from "lucide-react";
+import { Home, Trophy, CalendarPlus, Map, UserIcon, PlusCircle, CalendarCheck } from "lucide-react";
 
 import { NavCalendar } from "@/components/nav-calendar";
 import { NavUser } from "@/components/nav-user";
@@ -23,34 +23,39 @@ const data = {
     {
       name: "Inicio",
       url: "/",
-      icon: PieChart,
+      icon: Home,
     },
     {
       name: "Mis competencias",
       url: "/mis-competencias",
-      icon: Frame,
+      icon: Trophy,
     },
     {
       name: "Solicitar fecha",
       url: "/solicitar-fecha",
-      icon: Map,
+      icon: CalendarPlus,
     },
+    {
+      name: "Directorio",
+      url: "/directorio",
+      icon: Map,
+    }
   ],
   delegate: [
     {
       name: "Panel de delegado",
       url: "/panel",
-      icon: Frame,
+      icon: UserIcon,
     },
     {
       name: "Nueva competencia",
       url: "/panel/competencias/nueva",
-      icon: PieChart,
+      icon: PlusCircle,
     },
     {
       name: "Disponibilidad",
       url: "/panel/disponibilidad",
-      icon: Map,
+      icon: CalendarCheck,
     },
   ],
 };
