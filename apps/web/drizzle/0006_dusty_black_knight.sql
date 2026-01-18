@@ -1,0 +1,1 @@
+ALTER TABLE "competition" ADD COLUMN "capacity" integer DEFAULT 0 NOT NULL;

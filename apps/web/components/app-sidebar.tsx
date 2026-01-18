@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Home, Trophy, CalendarPlus, Map, UserIcon, PlusCircle, CalendarCheck } from "lucide-react";
+import {
+  Home,
+  Trophy,
+  CalendarPlus,
+  Map,
+  UserIcon,
+  PlusCircle,
+  CalendarCheck,
+} from "lucide-react";
 
 import { NavCalendar } from "@/components/nav-calendar";
 import { NavUser } from "@/components/nav-user";
@@ -39,7 +47,7 @@ const data = {
       name: "Directorio",
       url: "/directorio",
       icon: Map,
-    }
+    },
   ],
   delegate: [
     {

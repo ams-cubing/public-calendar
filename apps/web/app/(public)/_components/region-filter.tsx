@@ -1,12 +1,24 @@
-'use client';
+"use client";
 
 import React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import type { Region } from "@/db/schema";
 import { Label } from "@workspace/ui/components/label";
 
-export function RegionFilter({ regions, selected }: { regions: Region[]; selected?: string | null }) {
+export function RegionFilter({
+  regions,
+  selected,
+}: {
+  regions: Region[];
+  selected?: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,11 +33,10 @@ export function RegionFilter({ regions, selected }: { regions: Region[]; selecte
 
   return (
     <div className="flex items-center gap-2">
-      <Label id="region-filter-label" className="sr-only">Filtrar por región</Label>
-      <Select
-        value={selected ?? ""}
-        onValueChange={handleChange}
-      >
+      <Label id="region-filter-label" className="sr-only">
+        Filtrar por región
+      </Label>
+      <Select value={selected ?? ""} onValueChange={handleChange}>
         <SelectTrigger className="w-full" aria-labelledby="region-filter-label">
           <SelectValue placeholder="Seleccione una región" />
         </SelectTrigger>

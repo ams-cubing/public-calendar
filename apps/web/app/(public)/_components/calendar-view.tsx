@@ -11,8 +11,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
-import { useRouter } from "next/navigation";
-import { addMonths } from "date-fns";
+import { addMonths, subDays } from "date-fns";
 import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
 import type { Holiday } from "@/db/schema";
 
@@ -69,7 +68,6 @@ export function CalendarView({
   const [selectedCompetition, setSelectedCompetition] =
     useState<Competition | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const router = useRouter();
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -79,7 +77,7 @@ export function CalendarView({
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
 
-  const minDate = addMonths(new Date(), 3);
+  const minDate = subDays(addMonths(new Date(), 3), 1);
   const maxDate = availableDates[availableDates.length - 1];
 
   const getHolidayForDay = (day: number) => {
@@ -158,20 +156,6 @@ export function CalendarView({
     }
 
     return !isDateAvailable(day);
-  };
-
-  const isDateDisabled = (day: number) => {
-    return (
-      isDateDefinitelyUnavailable(day) || isDateConditionallyUnavailable(day)
-    );
-  };
-
-  const handleDayClick = (day: number) => {
-    if (isDateDisabled(day)) return;
-
-    const date = new Date(Date.UTC(year, month, day));
-    const formattedDate = date.toISOString().split("T")[0];
-    router.push(`/solicitar-fecha?fecha=${formattedDate}`);
   };
 
   const monthNames = [
@@ -264,7 +248,6 @@ export function CalendarView({
             return (
               <div
                 key={day}
-                onClick={() => !definitelyUnavailable && handleDayClick(day)}
                 className={cn(
                   "min-h-24 border rounded-lg p-2 transition-colors",
                   definitelyUnavailable
@@ -316,7 +299,9 @@ export function CalendarView({
                       )}
                       title={`Competencia en ${comp.state.region.displayName}`}
                     >
-                      {comp.statusPublic === "announced" ? comp.name : `Competencia en ${comp.state.region.displayName}`}
+                      {comp.statusPublic === "announced"
+                        ? comp.name
+                        : `Competencia en ${comp.state.region.displayName}`}
                     </div>
                   ))}
                 </div>

@@ -1,5 +1,5 @@
 import { InferSelectModel, relations } from "drizzle-orm";
-import { unique } from "drizzle-orm/pg-core";
+import { integer, unique } from "drizzle-orm/pg-core";
 import {
   pgTable,
   text,
@@ -167,7 +167,9 @@ export const competitions = pgTable("competition", {
 
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-
+  
+  capacity: integer("capacity").notNull().default(0),
+  
   statusPublic: publicStatusEnum("status_public").default("reserved").notNull(),
   statusInternal: internalStatusEnum("status_internal")
     .default("draft")

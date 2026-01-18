@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 "use client";
 
 import { useState } from "react";
@@ -10,7 +8,6 @@ import { Button } from "@workspace/ui/components/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,7 +28,7 @@ import {
   PopoverTrigger,
 } from "@workspace/ui/components/popover";
 import { CalendarIcon } from "lucide-react";
-import { addMonths, addWeeks, format } from "date-fns";
+import { addMonths, format } from "date-fns";
 import { cn } from "@workspace/ui/lib/utils";
 import { submitDateRequest } from "../_actions/submit-date-request";
 import { toast } from "sonner";
@@ -103,7 +100,22 @@ export function DateRequestForm({
     date: string;
   }[];
 }) {
-  const availableDates = availability.map((a) => new Date(a.date));
+  // parse YYYY-MM-DD into a local Date at midnight (avoid timezone shifts)
+  const parseDateStringToLocal = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y!, m! - 1, d);
+  };
+
+  const availableDates = availability.map((a) =>
+    parseDateStringToLocal(a.date),
+  );
+
+  const makeDateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+
+  const availableDateKeys = new Set(availableDates.map(makeDateKey));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -111,39 +123,25 @@ export function DateRequestForm({
   const router = useRouter();
   const pathname = usePathname();
 
-  const date = searchParams.get("fecha");
   const state = searchParams.get("estado");
 
   const minDate = addMonths(new Date(), 3);
-  const maxDate = availableDates[availableDates.length - 1];
+  const maxDate =
+    availableDates.length > 0
+      ? new Date(Math.max(...availableDates.map((d) => d.getTime())))
+      : undefined;
 
   // normalize min/max to midnight
   minDate.setHours(0, 0, 0, 0);
   if (maxDate) maxDate.setHours(0, 0, 0, 0);
-
-  const initialDate = date
-    ? (() => {
-      const [year, month, day] = date.split("-").map(Number);
-      const parsedDate = new Date(year!, month! - 1, day);
-
-      // Validate that the date is within the allowed range and is a weekend
-      const dayOfWeek = parsedDate.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      if (parsedDate < minDate || parsedDate > maxDate! || !isWeekend) {
-        return undefined;
-      }
-
-      return parsedDate;
-    })()
-    : undefined;
 
   const form = useForm<DateRequestFormValues>({
     resolver: zodResolver(dateRequestSchema),
     defaultValues: {
       city: "",
       stateId: state || "",
-      startDate: initialDate,
-      endDate: initialDate,
+      startDate: undefined,
+      endDate: undefined,
     },
   });
 
@@ -160,7 +158,7 @@ export function DateRequestForm({
       } else {
         toast.error(result.message || "Error al enviar la solicitud");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al enviar la solicitud");
     } finally {
       setIsSubmitting(false);
@@ -181,7 +179,9 @@ export function DateRequestForm({
                   // update form state
                   field.onChange(value);
                   // reflect selection in URL (estado)
-                  const params = new URLSearchParams(searchParams?.toString() || "");
+                  const params = new URLSearchParams(
+                    searchParams?.toString() || "",
+                  );
                   if (!value) params.delete("estado");
                   else params.set("estado", value);
                   const q = params.toString();
@@ -206,7 +206,7 @@ export function DateRequestForm({
             </FormItem>
           )}
         />
-  
+
         <FormField
           control={form.control}
           name="city"
@@ -214,10 +214,7 @@ export function DateRequestForm({
             <FormItem className="flex flex-col items-start">
               <FormLabel>Ciudad</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Guadalajara"
-                  {...field}
-                />
+                <Input placeholder="Guadalajara" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -249,7 +246,9 @@ export function DateRequestForm({
                     </>
                   ) : (
                     <span>
-                      {stateSelected ? "Selecciona la fecha" : "Selecciona un estado primero"}
+                      {stateSelected
+                        ? "Selecciona la fecha"
+                        : "Selecciona un estado primero"}
                     </span>
                   )}
                   <CalendarIcon className="ml-auto opacity-50" />
@@ -274,14 +273,17 @@ export function DateRequestForm({
                 }}
                 disabled={(date) => {
                   if (!stateSelected) return true;
-                  const day = date.getDay();
-                  const isWeekend = day === 0 || day === 6;
-                  const isOutOfRange = date < minDate || date > maxDate!;
-                  return !isWeekend || isOutOfRange;
+                  const key = makeDateKey(date);
+                  if (!availableDateKeys.has(key)) return true;
+                  if (date < minDate) return true;
+                  if (maxDate && date > maxDate) return true;
+                  return false;
                 }}
-                modifiers={{
-                  // unavailable: unavailableDates,
-                }}
+                modifiers={
+                  {
+                    // unavailable: unavailableDates,
+                  }
+                }
                 modifiersClassNames={{
                   unavailable: "[&>button]:line-through opacity-100",
                 }}
@@ -298,7 +300,11 @@ export function DateRequestForm({
           </FormMessage>
         </FormItem>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting || !stateSelected}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting || !stateSelected}
+        >
           {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
         </Button>
       </form>

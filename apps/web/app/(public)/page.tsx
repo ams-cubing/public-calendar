@@ -15,16 +15,12 @@ export default async function Page(props: PageProps) {
 
   const regionFilter = searchParams?.region;
 
-  const compsRaw = await db.select()
+  const compsRaw = await db
+    .select()
     .from(competitions)
-    .innerJoin(
-      states, eq(competitions.stateId, states.id))
-    .innerJoin(
-      regions, eq(states.regionId, regions.id))
-    .where(
-      regionFilter
-        ? eq(regions.id, regionFilter)
-        : undefined)
+    .innerJoin(states, eq(competitions.stateId, states.id))
+    .innerJoin(regions, eq(states.regionId, regions.id))
+    .where(regionFilter ? eq(regions.id, regionFilter) : undefined)
     .orderBy(asc(competitions.startDate));
 
   const comps = compsRaw.map((row) => {

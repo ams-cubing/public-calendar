@@ -1,6 +1,17 @@
 import { db } from "@/db";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table";
 import Image from "next/image";
 
 export default async function Page() {
@@ -35,7 +46,9 @@ export default async function Page() {
         </div>
       </section>
       <section className="mt-8">
-        <h2 className="mb-4 text-2xl font-semibold">Delegado/s sugeridos a cada región de México</h2>
+        <h2 className="mb-4 text-2xl font-semibold">
+          Delegados sugeridos para cada región de México
+        </h2>
         <Table>
           <TableHeader>
             <TableRow>
@@ -64,13 +77,23 @@ export default async function Page() {
                   </Avatar>
                 </TableCell>
                 <TableCell>
-                  <a href={`https://www.worldcubeassociation.org/persons/${delegate.wcaId}`} className="hover:underline" target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={`https://www.worldcubeassociation.org/persons/${delegate.wcaId}`}
+                    className="hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {delegate.name}
                   </a>
                 </TableCell>
                 <TableCell>{delegate.region?.displayName || "N/A"}</TableCell>
                 <TableCell>
-                  <a href={`mailto:${delegate.email}`} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={`mailto:${delegate.email}`}
+                    className="text-blue-600 hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {delegate.email}
                   </a>
                 </TableCell>
@@ -80,7 +103,9 @@ export default async function Page() {
         </Table>
       </section>
       <section className="mt-8">
-        <h2 className="mb-4 text-2xl font-semibold">Estados que comprenden cada región</h2>
+        <h2 className="mb-4 text-2xl font-semibold">
+          Estados que comprenden cada región
+        </h2>
         <Table>
           <TableHeader>
             <TableRow>
@@ -92,7 +117,9 @@ export default async function Page() {
             {regions.map((region) => (
               <TableRow key={region.id}>
                 <TableCell>{region.displayName}</TableCell>
-                <TableCell>{region.states.map(state => state.name).join(", ")}</TableCell>
+                <TableCell>
+                  {region.states.map((state) => state.name).join(", ")}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
