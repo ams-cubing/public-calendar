@@ -27,6 +27,8 @@ const updateCompetitionSchema = z
         issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
     }),
     trelloUrl: z.string().url().optional().or(z.literal("")),
+    wcaCompetitionUrl: z.url("URL inválida").optional().or(z.literal("")),
+    capacity: z.number().min(2, "La capacidad debe ser al menos 2").optional(),
     statusPublic: z.enum([
       "open",
       "reserved",
@@ -97,6 +99,8 @@ export async function updateCompetition(
         city: validatedData.city,
         stateId: validatedData.stateId,
         trelloUrl: validatedData.trelloUrl || null,
+        wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
+        capacity: validatedData.capacity || 0,
         startDate: startDateStr!,
         endDate: endDateStr!,
         statusPublic: validatedData.statusPublic,

@@ -64,7 +64,7 @@ export default async function Page(props: PageProps) {
                 new Date(
                   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                   recentRequestsCount[0]?.createdAt?.getTime()! +
-                  7 * 24 * 60 * 60 * 1000,
+                    7 * 24 * 60 * 60 * 1000,
                 ),
                 new Date(),
                 {
@@ -83,43 +83,49 @@ export default async function Page(props: PageProps) {
 
   const stateFilter = searchParams?.estado;
 
-  const availabilityData = stateFilter
+  const delegates = stateFilter
     ? await db
-      .select({
-        date: availability.date,
-      })
-      .from(availability)
-      .innerJoin(user, eq(availability.userWcaId, user.wcaId))
-      .innerJoin(regions, eq(user.regionId, regions.id))
-      .innerJoin(states, eq(regions.id, states.regionId))
-      .where(eq(states.id, stateFilter))
-      .orderBy(availability.date)
-      .groupBy(availability.date)
+        .select({
+          name: user.name,
+          email: user.email,
+        })
+        .from(user)
+        .innerJoin(regions, eq(user.regionId, regions.id))
+        .innerJoin(states, eq(regions.id, states.regionId))
+        .where(eq(states.id, stateFilter))
     : [];
 
-    console.log(availabilityData);
+  const availabilityData = stateFilter
+    ? delegates.length > 0
+      ? await db
+          .select({
+            date: availability.date,
+          })
+          .from(availability)
+          .innerJoin(user, eq(availability.userWcaId, user.wcaId))
+          .innerJoin(regions, eq(user.regionId, regions.id))
+          .innerJoin(states, eq(regions.id, states.regionId))
+          .where(eq(states.id, stateFilter))
+          .orderBy(availability.date)
+          .groupBy(availability.date)
+      : await db
+          .select({
+            date: availability.date,
+          })
+          .from(availability)
+          .orderBy(availability.date)
+          .groupBy(availability.date)
+    : [];
 
   const regionsData = stateFilter
     ? await db
-      .select({
-        regionName: regions.displayName,
-      })
-      .from(regions)
-      .innerJoin(states, eq(regions.id, states.regionId))
-      .where(eq(states.id, stateFilter))
-      .limit(1)
-    : [];
-
-  const delegates = stateFilter
-    ? await db
-      .select({
-        name: user.name,
-        email: user.email,
-      })
-      .from(user)
-      .innerJoin(regions, eq(user.regionId, regions.id))
-      .innerJoin(states, eq(regions.id, states.regionId))
-      .where(eq(states.id, stateFilter))
+        .select({
+          regionName: regions.displayName,
+        })
+        .from(regions)
+        .innerJoin(states, eq(regions.id, states.regionId))
+        .where(eq(states.id, stateFilter))
+        .limit(1)
     : [];
 
   const regionName = regionsData.length > 0 ? regionsData[0]?.regionName : null;
@@ -143,7 +149,7 @@ export default async function Page(props: PageProps) {
                 {regionName ?? "—"}
               </span>
             </h2>
-          
+
             {delegates.length > 0 ? (
               <div>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -168,8 +174,8 @@ export default async function Page(props: PageProps) {
               </div>
             ) : (
               <div className="text-sm text-muted-foreground">
-                No hay delegados disponibles para esta región, se mostrarán
-                las fechas disponibles de todos los delegados
+                No hay delegados disponibles para esta región, se mostrarán las
+                fechas disponibles de todos los delegados
               </div>
             )}
           </section>

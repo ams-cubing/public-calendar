@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { es } from "react-day-picker/locale";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
+import { MEXICAN_STATES } from "@/lib/constants";
 
 const dateRequestSchema = z
   .object({
@@ -57,41 +58,6 @@ const dateRequestSchema = z
   });
 
 type DateRequestFormValues = z.infer<typeof dateRequestSchema>;
-
-const MEXICAN_STATES = [
-  { id: "AGU", name: "Aguascalientes" },
-  { id: "BCN", name: "Baja California" },
-  { id: "BCS", name: "Baja California Sur" },
-  { id: "CAM", name: "Campeche" },
-  { id: "CHP", name: "Chiapas" },
-  { id: "CHH", name: "Chihuahua" },
-  { id: "CMX", name: "Ciudad de México" },
-  { id: "COA", name: "Coahuila" },
-  { id: "COL", name: "Colima" },
-  { id: "DUR", name: "Durango" },
-  { id: "GUA", name: "Guanajuato" },
-  { id: "GRO", name: "Guerrero" },
-  { id: "HID", name: "Hidalgo" },
-  { id: "JAL", name: "Jalisco" },
-  { id: "MEX", name: "Estado de México" },
-  { id: "MIC", name: "Michoacán" },
-  { id: "MOR", name: "Morelos" },
-  { id: "NAY", name: "Nayarit" },
-  { id: "NLE", name: "Nuevo León" },
-  { id: "OAX", name: "Oaxaca" },
-  { id: "PUE", name: "Puebla" },
-  { id: "QUE", name: "Querétaro" },
-  { id: "ROO", name: "Quintana Roo" },
-  { id: "SLP", name: "San Luis Potosí" },
-  { id: "SIN", name: "Sinaloa" },
-  { id: "SON", name: "Sonora" },
-  { id: "TAB", name: "Tabasco" },
-  { id: "TAM", name: "Tamaulipas" },
-  { id: "TLA", name: "Tlaxcala" },
-  { id: "VER", name: "Veracruz" },
-  { id: "YUC", name: "Yucatán" },
-  { id: "ZAC", name: "Zacatecas" },
-];
 
 export function DateRequestForm({
   availability,
@@ -154,7 +120,8 @@ export function DateRequestForm({
 
       if (result.success) {
         toast.success(result.message || "Solicitud enviada exitosamente");
-        form.reset();
+
+        router.push("/");
       } else {
         toast.error(result.message || "Error al enviar la solicitud");
       }
@@ -236,7 +203,7 @@ export function DateRequestForm({
                   className={cn(
                     "w-full pl-3 text-left font-normal data-[invalid=true]:ring-2 data-[invalid=true]:ring-destructive/20 dark:data-[invalid=true]:ring-destructive/40 data-[invalid=true]:border-destructive",
                     (!form.watch("startDate") || !stateSelected) &&
-                    "text-muted-foreground",
+                      "text-muted-foreground",
                   )}
                 >
                   {form.watch("startDate") && form.watch("endDate") ? (

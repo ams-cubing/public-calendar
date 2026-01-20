@@ -36,8 +36,6 @@ export default async function Page({
     orderBy: (user, { asc }) => asc(user.name),
   });
 
-  const availableDates = [] as Date[];
-
   // Transform competition data to match the expected format
   const formattedCompetition = {
     ...competition,
@@ -61,7 +59,6 @@ export default async function Page({
           </p>
         </div>
         <CompetitionForm
-          availableDates={availableDates}
           delegates={delegates}
           competition={formattedCompetition}
         />

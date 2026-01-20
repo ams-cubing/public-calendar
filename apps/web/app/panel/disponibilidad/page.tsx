@@ -16,6 +16,37 @@ export default async function Page() {
     },
   });
 
+  // Query competitions where the current user is a delegate
+  const delegateCompetitionRows = await db.query.competitionDelegates.findMany({
+    where: (cd, { eq }) => eq(cd.delegateWcaId, session?.user.wcaId ?? ""),
+    columns: { competitionId: true },
+  });
+
+  const competitionIds = delegateCompetitionRows.map((r) => r.competitionId);
+
+  const delegateBusyCompetitions =
+    competitionIds.length > 0
+      ? await db.query.competitions.findMany({
+          where: (c, { inArray }) => inArray(c.id, competitionIds),
+          columns: {
+            startDate: true,
+            endDate: true,
+          },
+        })
+      : [];
+
+  const delegateBusyDaysSet = new Set<string>();
+  for (const comp of delegateBusyCompetitions) {
+    if (!comp?.startDate || !comp?.endDate) continue;
+    const start = new Date(comp.startDate);
+    const end = new Date(comp.endDate);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      delegateBusyDaysSet.add(d.toISOString().slice(0, 10));
+    }
+  }
+
+  const delegateBusyDays = Array.from(delegateBusyDaysSet).sort();
+
   return (
     <main className="p-6">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -25,7 +56,10 @@ export default async function Page() {
             Complete el formulario para registrar su disponibilidad.
           </p>
         </div>
-        <AvailabilityForm availabilityDates={availabilityDates} />
+        <AvailabilityForm
+          availabilityDates={availabilityDates}
+          busyDays={delegateBusyDays}
+        />
       </div>
     </main>
   );

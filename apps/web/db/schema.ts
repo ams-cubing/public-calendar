@@ -143,6 +143,8 @@ export const states = pgTable("state", {
     .references(() => regions.id),
 });
 
+export type State = InferSelectModel<typeof states>;
+
 export const regions = pgTable("region", {
   id: text("id").primaryKey(),
   displayName: text("display_name").notNull(),
@@ -167,9 +169,9 @@ export const competitions = pgTable("competition", {
 
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-  
+
   capacity: integer("capacity").notNull().default(0),
-  
+
   statusPublic: publicStatusEnum("status_public").default("reserved").notNull(),
   statusInternal: internalStatusEnum("status_internal")
     .default("draft")
@@ -178,6 +180,8 @@ export const competitions = pgTable("competition", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export type Competition = InferSelectModel<typeof competitions>;
 
 export const competitionDelegates = pgTable("competition_delegate", {
   competitionId: serial("competition_id")

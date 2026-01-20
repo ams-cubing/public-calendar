@@ -26,15 +26,15 @@ export function getPublicStatusColor(status: string): string {
   const colorMap: Record<string, string> = {
     open: "bg-green-100 text-green-800 dark:bg-green-200 dark:text-green-900 hover:bg-green-200 dark:hover:bg-green-300",
     reserved:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-200 dark:text-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-300",
+      "bg-yellow-300 text-yellow-800 dark:bg-yellow-200 dark:text-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-300",
     confirmed:
-      "bg-blue-100 text-blue-800 dark:bg-blue-200 dark:text-blue-900 hover:bg-blue-200 dark:hover:bg-blue-300",
+      "bg-orange-300 text-orange-800 dark:bg-orange-200 dark:text-orange-900 hover:bg-orange-200 dark:hover:bg-orange-300",
     announced:
       "bg-purple-100 text-purple-800 dark:bg-purple-200 dark:text-purple-900 hover:bg-purple-200 dark:hover:bg-purple-300",
     suspended:
-      "bg-red-100 text-red-800 dark:bg-red-200 dark:text-red-900 hover:bg-red-200 dark:hover:bg-red-300",
+      "bg-red-400 text-red-800 dark:bg-red-200 dark:text-red-900 hover:bg-red-200 dark:hover:bg-red-300",
     unavailable:
-      "bg-gray-100 text-gray-800 dark:bg-gray-200 dark:text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-300",
+      "bg-gray-400 text-gray-800 dark:bg-gray-200 dark:text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-300",
   };
 
   return (

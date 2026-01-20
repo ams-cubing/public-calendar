@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Calendar } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Calendar,
+  Users,
+} from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -13,41 +19,14 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { addMonths, subDays } from "date-fns";
 import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
-import type { Holiday } from "@/db/schema";
+import type { Competition, Holiday, Region, State } from "@/db/schema";
 
-interface Competition {
-  id: number;
-  name: string | null;
-  city: string;
-  stateId: string;
-  requestedBy: string | null;
-  trelloUrl: string | null;
-  startDate: string;
-  endDate: string;
-  statusPublic:
-  | "open"
-  | "reserved"
-  | "confirmed"
-  | "announced"
-  | "suspended"
-  | "unavailable";
-  statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
-  createdAt: Date;
-  updatedAt: Date;
-  state: {
-    id: string;
-    name: string;
-    regionId: string;
-    region: {
-      id: string;
-      displayName: string;
-      mapColor: string;
-    };
-  };
+interface FullCompetition extends Competition {
+  state: State & { region: Region };
 }
 
 interface CalendarViewProps {
-  competitions: Competition[];
+  competitions: FullCompetition[];
   holidays: Holiday[];
   availability: {
     date: string;
@@ -66,7 +45,7 @@ export function CalendarView({
     return new Date(now.getFullYear(), now.getMonth() + 3, 1);
   });
   const [selectedCompetition, setSelectedCompetition] =
-    useState<Competition | null>(null);
+    useState<FullCompetition | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const year = currentDate.getFullYear();
@@ -118,7 +97,7 @@ export function CalendarView({
     });
   };
 
-  const handleCompetitionClick = (competition: Competition) => {
+  const handleCompetitionClick = (competition: FullCompetition) => {
     setSelectedCompetition(competition);
     setIsDialogOpen(true);
   };
@@ -134,22 +113,20 @@ export function CalendarView({
   };
 
   const isDateAvailable = (day: number) => {
-    const dateISO = new Date(Date.UTC(year, month, day))
-      .toISOString()
-      .split("T")[0];
-
+    const localDate = new Date(year, month, day);
+    const dateISO = localDate.toISOString().split("T")[0];
     const availableDateStrings = availability.map((a) => a.date);
 
     return availableDateStrings.includes(dateISO!);
   };
 
   const isDateDefinitelyUnavailable = (day: number) => {
-    const date = new Date(Date.UTC(year, month, day));
+    const date = new Date(year, month, day);
     return date < minDate || (maxDate ? date > maxDate : false);
   };
 
   const isDateConditionallyUnavailable = (day: number) => {
-    const date = new Date(Date.UTC(year, month, day));
+    const date = new Date(year, month, day);
 
     if (date < minDate || (maxDate && date > maxDate)) {
       return false;
@@ -251,35 +228,33 @@ export function CalendarView({
                 className={cn(
                   "min-h-24 border rounded-lg p-2 transition-colors",
                   definitelyUnavailable
-                    ? "cursor-not-allowed opacity-50 bg-gray-200 dark:bg-slate-900" // Light gray for unavailable dates
+                    ? "cursor-not-allowed opacity-50 bg-gray-200 dark:bg-slate-900"
                     : conditionallyUnavailable
-                      ? "cursor-not-allowed opacity-75 bg-yellow-100 dark:bg-yellow-900" // Soft yellow for conditionally unavailable dates
-                      : "cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800", // Light gray hover for available dates
+                      ? "cursor-not-allowed bg-gray-200 dark:bg-slate-900"
+                      : "cursor-pointer bg-pink-300 dark:bg-pink-900 hover:bg-pink-400 dark:hover:bg-pink-800",
                   isToday
-                    ? "bg-blue-100 border-blue-400 dark:bg-blue-900 dark:border-blue-700" // Light blue for today
-                    : "border-gray-300 dark:border-slate-700", // Neutral border for other dates
-                  holiday && "bg-red-100 dark:bg-red-950", // Soft red for holidays
+                    ? "bg-background border-2 border-primary/50"
+                    : "border-gray-300 dark:border-slate-700",
+                  holiday && "bg-blue-100 dark:bg-blue-950",
                 )}
               >
                 <div
                   className={cn(
                     "text-sm font-semibold mb-1",
-                    definitelyUnavailable &&
-                    "text-gray-500 dark:text-muted-foreground", // Gray text for unavailable dates
-                    conditionallyUnavailable &&
-                    "text-yellow-700 dark:text-yellow-400", // Darker yellow text for conditionally unavailable dates
+                    definitelyUnavailable && "text-muted-foreground",
+                    conditionallyUnavailable && "text-muted-foreground",
                     isToday
-                      ? "text-blue-700 dark:text-blue-400" // Darker blue text for today
+                      ? "text-primary" // Darker blue text for today
                       : !definitelyUnavailable &&
-                      !conditionallyUnavailable &&
-                      "text-gray-800 dark:text-slate-300", // Neutral text for available dates
+                          !conditionallyUnavailable &&
+                          "text-gray-800 dark:text-slate-300", // Neutral text for available dates
                   )}
                 >
                   {day}
                 </div>
                 {holiday && (
                   <div
-                    className="text-xs text-red-700 dark:text-red-400 font-medium mb-1 truncate"
+                    className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1 truncate"
                     title={holiday.name}
                   >
                     {holiday.name}
@@ -330,8 +305,8 @@ export function CalendarView({
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                        <> - {formatDate(selectedCompetition.endDate)}</>
-                      )}
+                      <> - {formatDate(selectedCompetition.endDate)}</>
+                    )}
                   </p>
                 </div>
               </div>
@@ -345,6 +320,18 @@ export function CalendarView({
                   </p>
                 </div>
               </div>
+
+              {selectedCompetition.capacity > 0 && (
+                <div className="flex items-start gap-2">
+                  <Users className="w-5 h-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Cupo</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCompetition.capacity} participantes
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <p className="font-semibold mb-1">Estado</p>

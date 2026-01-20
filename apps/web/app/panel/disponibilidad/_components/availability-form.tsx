@@ -27,9 +27,13 @@ type AvailabilityFormValues = z.infer<typeof availabilitySchema>;
 
 interface AvailabilityFormProps {
   availabilityDates: { date: string }[];
+  busyDays: string[];
 }
 
-export function AvailabilityForm({ availabilityDates }: AvailabilityFormProps) {
+export function AvailabilityForm({
+  availabilityDates,
+  busyDays,
+}: AvailabilityFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<AvailabilityFormValues>({
@@ -41,6 +45,11 @@ export function AvailabilityForm({ availabilityDates }: AvailabilityFormProps) {
         return date;
       }),
     },
+  });
+
+  const unavailableDays = busyDays.map((dateStr) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year!, month! - 1, day);
   });
 
   async function onSubmit(data: AvailabilityFormValues) {
@@ -79,14 +88,23 @@ export function AvailabilityForm({ availabilityDates }: AvailabilityFormProps) {
                     mode="multiple"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const fiveWeeksFromNow = addWeeks(today, 5);
-                      return date < today || date <= fiveWeeksFromNow;
-                    }}
+                    disabled={[
+                      ...unavailableDays,
+                      (date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const fiveWeeksFromNow = addWeeks(today, 5);
+                        return date <= fiveWeeksFromNow;
+                      },
+                    ]}
                     locale={es}
                     numberOfMonths={2}
+                    modifiers={{
+                      unavailable: unavailableDays,
+                    }}
+                    modifiersClassNames={{
+                      unavailable: "[&>button]:line-through opacity-100",
+                    }}
                     className="p-0"
                     defaultMonth={addWeeks(new Date(), 3)}
                   />

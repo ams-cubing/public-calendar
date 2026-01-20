@@ -3,6 +3,7 @@ import { eq, asc } from "drizzle-orm";
 import { CalendarView } from "./_components/calendar-view";
 import { RegionFilter } from "./_components/region-filter";
 import { competitions, regions, states } from "@/db/schema";
+import { SemaphoreLegend } from "./_components/semaphore-legend";
 
 interface PageProps {
   searchParams?: Promise<{
@@ -29,26 +30,11 @@ export default async function Page(props: PageProps) {
     const r = row.region;
 
     return {
-      id: c.id,
-      name: c.name ?? null,
-      city: c.city,
-      stateId: c.stateId,
-      requestedBy: c.requestedBy ?? null,
-      trelloUrl: c.trelloUrl ?? null,
-      startDate: c.startDate,
-      endDate: c.endDate,
-      statusPublic: c.statusPublic,
-      statusInternal: c.statusInternal,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
+      ...c,
       state: {
-        id: s.id,
-        name: s.name,
-        regionId: s.regionId,
+        ...s,
         region: {
-          id: r.id,
-          displayName: r.displayName,
-          mapColor: r.mapColor,
+          ...r,
         },
       },
     };
@@ -76,6 +62,7 @@ export default async function Page(props: PageProps) {
           holidays={holidays}
           availability={availability}
         />
+        <SemaphoreLegend />
       </div>
     </main>
   );

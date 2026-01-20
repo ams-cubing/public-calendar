@@ -3,8 +3,6 @@ import { CompetitionForm } from "../_components/competition-form";
 import { Suspense } from "react";
 
 export default async function Page() {
-  const availableDates = [] as Date[];
-
   const delegates = await db.query.user.findMany({
     where: (user, { eq }) => eq(user.role, "delegate"),
     orderBy: (user, { asc }) => asc(user.name),
@@ -20,10 +18,7 @@ export default async function Page() {
           </p>
         </div>
         <Suspense>
-          <CompetitionForm
-            availableDates={availableDates}
-            delegates={delegates}
-          />
+          <CompetitionForm delegates={delegates} />
         </Suspense>
       </div>
     </main>

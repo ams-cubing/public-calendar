@@ -29,18 +29,19 @@ import {
   PopoverTrigger,
 } from "@workspace/ui/components/popover";
 import { CalendarIcon, X } from "lucide-react";
-import { addMonths, addWeeks, format } from "date-fns";
+import { addWeeks, format } from "date-fns";
 import { cn } from "@workspace/ui/lib/utils";
 import { createCompetition } from "../_actions/create-competition";
 import { updateCompetition } from "../_actions/update-competition";
 import { toast } from "sonner";
 import { es } from "react-day-picker/locale";
-import { useSearchParams } from "next/navigation";
 import type { DateRange } from "react-day-picker";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { useRouter } from "next/navigation";
 import { OrganizerCombobox } from "./organizer-combobox";
 import { searchUsers } from "../_actions/wca-users";
+import { MEXICAN_STATES } from "@/lib/constants";
+import { Competition } from "@/db/schema";
 
 const dateRequestSchema = z
   .object({
@@ -62,6 +63,8 @@ const dateRequestSchema = z
         issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
     }),
     trelloUrl: z.url("URL inválida").optional().or(z.literal("")),
+    wcaCompetitionUrl: z.url("URL inválida").optional().or(z.literal("")),
+    capacity: z.number().min(2, "La capacidad debe ser al menos 2").optional(),
     statusPublic: z.enum([
       "open",
       "reserved",
@@ -102,48 +105,13 @@ const dateRequestSchema = z
 
 type DateRequestFormValues = z.infer<typeof dateRequestSchema>;
 
-const MEXICAN_STATES = [
-  { id: "AGU", name: "Aguascalientes" },
-  { id: "BCN", name: "Baja California" },
-  { id: "BCS", name: "Baja California Sur" },
-  { id: "CAM", name: "Campeche" },
-  { id: "CHP", name: "Chiapas" },
-  { id: "CHH", name: "Chihuahua" },
-  { id: "CMX", name: "Ciudad de México" },
-  { id: "COA", name: "Coahuila" },
-  { id: "COL", name: "Colima" },
-  { id: "DUR", name: "Durango" },
-  { id: "GUA", name: "Guanajuato" },
-  { id: "GRO", name: "Guerrero" },
-  { id: "HID", name: "Hidalgo" },
-  { id: "JAL", name: "Jalisco" },
-  { id: "MEX", name: "Estado de México" },
-  { id: "MIC", name: "Michoacán" },
-  { id: "MOR", name: "Morelos" },
-  { id: "NAY", name: "Nayarit" },
-  { id: "NLE", name: "Nuevo León" },
-  { id: "OAX", name: "Oaxaca" },
-  { id: "PUE", name: "Puebla" },
-  { id: "QUE", name: "Querétaro" },
-  { id: "ROO", name: "Quintana Roo" },
-  { id: "SLP", name: "San Luis Potosí" },
-  { id: "SIN", name: "Sinaloa" },
-  { id: "SON", name: "Sonora" },
-  { id: "TAB", name: "Tabasco" },
-  { id: "TAM", name: "Tamaulipas" },
-  { id: "TLA", name: "Tlaxcala" },
-  { id: "VER", name: "Veracruz" },
-  { id: "YUC", name: "Yucatán" },
-  { id: "ZAC", name: "Zacatecas" },
-];
-
 const PUBLIC_STATUSES = [
-  { value: "open", label: "Abierto" },
-  { value: "reserved", label: "Reservado" },
-  { value: "confirmed", label: "Confirmado" },
-  { value: "announced", label: "Anunciado" },
-  { value: "suspended", label: "Suspendido" },
-  { value: "unavailable", label: "No disponible" },
+  // { value: "open", label: "Abierto" },
+  { value: "reserved", label: "Fecha reservada" },
+  { value: "confirmed", label: "Sede confirmada" },
+  { value: "announced", label: "Anunciada" },
+  { value: "suspended", label: "Suspendida" },
+  // { value: "unavailable", label: "No disponible" },
 ];
 
 const INTERNAL_STATUSES = [
@@ -153,67 +121,33 @@ const INTERNAL_STATUSES = [
   { value: "ready", label: "Listo" },
 ];
 
-type Competition = {
-  id: number;
-  name: string | null;
-  city: string;
-  stateId: string;
-  startDate: string;
-  endDate: string;
-  trelloUrl: string | null;
-  statusPublic:
-    | "open"
-    | "reserved"
-    | "confirmed"
-    | "announced"
-    | "suspended"
-    | "unavailable";
-  statusInternal: "draft" | "looking_for_venue" | "ultimatum_sent" | "ready";
-  delegates: Array<{
+interface FullCompetition extends Competition {
+  delegates: {
     delegateWcaId: string;
     isPrimary: boolean;
-  }>;
-  organizers: Array<{
+  }[];
+  organizers: {
     organizerWcaId: string;
     isPrimary: boolean;
-  }>;
-};
+  }[];
+}
 
 export function CompetitionForm({
-  availableDates,
   delegates,
   competition,
 }: {
-  availableDates: Date[];
-  delegates: Array<{ wcaId: string; name: string; regionId: string | null }>;
-  competition?: Competition;
+  delegates: { wcaId: string; name: string; regionId: string | null }[];
+  competition?: FullCompetition;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOrganizers, setSelectedOrganizers] = useState<
-    Array<{ wcaId: string; name: string }>
+    { wcaId: string; name: string }[]
   >([]);
   const isEditing = !!competition;
 
-  const searchParams = useSearchParams();
-  const date = searchParams.get("fecha");
-
   const minDate = addWeeks(new Date(), 5);
-  const maxDate = addMonths(new Date(), 6);
 
   const router = useRouter();
-
-  const initialDate = date
-    ? (() => {
-        const [year, month, day] = date.split("-").map(Number);
-        const parsedDate = new Date(year!, month! - 1, day);
-
-        if (parsedDate < minDate || parsedDate > maxDate) {
-          return undefined;
-        }
-
-        return parsedDate;
-      })()
-    : undefined;
 
   const form = useForm<DateRequestFormValues>({
     resolver: zodResolver(dateRequestSchema),
@@ -225,6 +159,8 @@ export function CompetitionForm({
           startDate: new Date(competition.startDate),
           endDate: new Date(competition.endDate),
           trelloUrl: competition.trelloUrl || "",
+          wcaCompetitionUrl: competition.wcaCompetitionUrl || "",
+          capacity: competition.capacity || 0,
           statusPublic: competition.statusPublic,
           statusInternal: competition.statusInternal,
           delegateWcaIds: competition.delegates.map((d) => d.delegateWcaId),
@@ -239,9 +175,11 @@ export function CompetitionForm({
           name: "",
           city: "",
           stateId: "",
-          startDate: initialDate,
-          endDate: initialDate,
+          startDate: undefined,
+          endDate: undefined,
           trelloUrl: "",
+          wcaCompetitionUrl: "",
+          capacity: 0,
           statusPublic: "reserved",
           statusInternal: "draft",
           delegateWcaIds: [],
@@ -437,12 +375,10 @@ export function CompetitionForm({
                     form.setValue("endDate", range.to);
                   }
                 }}
-                disabled={(date) =>
-                  !isEditing && (date < minDate || date > maxDate)
-                }
-                modifiers={{
-                  unavailable: availableDates,
-                }}
+                disabled={(date) => !isEditing && date < minDate}
+                // modifiers={{
+                //   unavailable: availableDates,
+                // }}
                 modifiersClassNames={{
                   unavailable: "[&>button]:line-through opacity-100",
                 }}
@@ -471,6 +407,49 @@ export function CompetitionForm({
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="wcaCompetitionUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL de la WCA</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="https://www.worldcubeassociation.org/competitions/..."
+                  type="url"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="capacity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Capacidad</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Número máximo de participantes"
+                  min={2}
+                  {...field}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    field.onChange(val === "" ? undefined : Number(val));
+                  }}
+                />
+              </FormControl>
+              <FormDescription>Opcional. Mínimo 2</FormDescription>
               <FormMessage />
             </FormItem>
           )}
