@@ -42,6 +42,7 @@ import { OrganizerCombobox } from "./organizer-combobox";
 import { searchUsers } from "../_actions/wca-users";
 import { MEXICAN_STATES } from "@/lib/constants";
 import { Competition } from "@/db/schema";
+import { Textarea } from "@workspace/ui/components/textarea";
 
 const dateRequestSchema = z
   .object({
@@ -74,11 +75,15 @@ const dateRequestSchema = z
       "unavailable",
     ]),
     statusInternal: z.enum([
-      "draft",
+      "asked_for_help",
       "looking_for_venue",
-      "ultimatum_sent",
-      "ready",
+      "venue_found",
+      "wca_approved",
+      "registration_open",
+      "celebrated",
+      "cancelled",
     ]),
+    notes: z.string().optional().or(z.literal("")),
     delegateWcaIds: z
       .array(z.string())
       .min(1, "Selecciona al menos un delegado"),
@@ -115,10 +120,13 @@ const PUBLIC_STATUSES = [
 ];
 
 const INTERNAL_STATUSES = [
-  { value: "draft", label: "Borrador" },
+  { value: "asked_for_help", label: "Pidiendo ayuda" },
   { value: "looking_for_venue", label: "Buscando sede" },
-  { value: "ultimatum_sent", label: "Ultimátum enviado" },
-  { value: "ready", label: "Listo" },
+  { value: "venue_found", label: "Sede encontrada" },
+  { value: "wca_approved", label: "Aprobada por la WCA" },
+  { value: "registration_open", label: "Registro abierto" },
+  { value: "celebrated", label: "Celebrada" },
+  { value: "cancelled", label: "Cancelada" },
 ];
 
 interface FullCompetition extends Competition {
@@ -163,6 +171,7 @@ export function CompetitionForm({
           capacity: competition.capacity || 0,
           statusPublic: competition.statusPublic,
           statusInternal: competition.statusInternal,
+          notes: competition.notes || "",
           delegateWcaIds: competition.delegates.map((d) => d.delegateWcaId),
           primaryDelegateWcaId:
             competition.delegates.find((d) => d.isPrimary)?.delegateWcaId || "",
@@ -181,7 +190,8 @@ export function CompetitionForm({
           wcaCompetitionUrl: "",
           capacity: 0,
           statusPublic: "reserved",
-          statusInternal: "draft",
+          statusInternal: "looking_for_venue",
+          notes: "",
           delegateWcaIds: [],
           primaryDelegateWcaId: "",
           organizerWcaIds: [],
@@ -656,6 +666,20 @@ export function CompetitionForm({
               <FormDescription>
                 Debe ser uno de los delegados seleccionados arriba
               </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notas</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Ej. Información adicional sobre la competencia" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

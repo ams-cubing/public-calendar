@@ -138,7 +138,7 @@ export async function submitDateRequest(
             startDate: startDateStr!,
             endDate: endDateStr!,
             statusPublic: "reserved",
-            statusInternal: "draft",
+            statusInternal: "looking_for_venue",
           })
           .returning();
 

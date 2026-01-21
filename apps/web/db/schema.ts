@@ -120,19 +120,22 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 export const publicStatusEnum = pgEnum("public_status", [
-  "open",
-  "reserved",
-  "confirmed",
-  "announced",
-  "suspended",
-  "unavailable",
+  "open", // Fecha abierta
+  "reserved", // Fecha reservada
+  "confirmed", // Sede confirmada
+  "announced", // Competencia anunciada
+  "suspended", // Competencia suspendida
+  "unavailable", // Fecha inhábil
 ]);
 
 export const internalStatusEnum = pgEnum("internal_status", [
-  "draft",
+  "asked_for_help", // Se ha solicitado ayuda
   "looking_for_venue",
-  "ultimatum_sent",
-  "ready",
+  "venue_found", // Sede encontrada
+  "wca_approved", // Aprobada por la WCA
+  "registration_open", // Registro abierto
+  "celebrated", // Competencia finalizada
+  "cancelled", // Competencia cancelada
 ]);
 
 export const states = pgTable("state", {
@@ -174,8 +177,10 @@ export const competitions = pgTable("competition", {
 
   statusPublic: publicStatusEnum("status_public").default("reserved").notNull(),
   statusInternal: internalStatusEnum("status_internal")
-    .default("draft")
+    .default("looking_for_venue")
     .notNull(),
+
+  notes: text("notes"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -248,6 +253,36 @@ export const logs = pgTable(
   ],
 );
 
+export const ultimatumStatusEnum = pgEnum("ultimatum_status", [
+  "active",
+  "expired",
+  "resolved",
+]);
+
+export const ultimatums = pgTable(
+  "ultimatum",
+  {
+    id: serial("id").primaryKey(),
+    competitionId: serial("competition_id")
+      .notNull()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    organizerWcaId: text("organizer_wca_id")
+      .notNull()
+      .references(() => user.wcaId, { onDelete: "cascade" }),
+    sentBy: text("sent_by").references(() => user.id),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+    deadline: date("deadline").notNull(),
+    status: ultimatumStatusEnum("status").default("active").notNull(),
+    message: text("message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("ultimatum_competition_idx").on(table.competitionId),
+    index("ultimatum_organizer_idx").on(table.organizerWcaId),
+  ],
+);
+
 export const statesRelations = relations(states, ({ one, many }) => ({
   region: one(regions, {
     fields: [states.regionId],
@@ -270,6 +305,7 @@ export const competitionsRelations = relations(
     }),
     delegates: many(competitionDelegates),
     organizers: many(competitionOrganizers),
+    ultimatums: many(ultimatums), // <-- new relation
   }),
 );
 
@@ -304,6 +340,21 @@ export const competitionOrganizersRelations = relations(
 export const logsRelations = relations(logs, ({ one }) => ({
   actor: one(user, {
     fields: [logs.actorId],
+    references: [user.id],
+  }),
+}));
+
+export const ultimatumRelations = relations(ultimatums, ({ one }) => ({
+  competition: one(competitions, {
+    fields: [ultimatums.competitionId],
+    references: [competitions.id],
+  }),
+  organizer: one(user, {
+    fields: [ultimatums.organizerWcaId],
+    references: [user.wcaId],
+  }),
+  sender: one(user, {
+    fields: [ultimatums.sentBy],
     references: [user.id],
   }),
 }));

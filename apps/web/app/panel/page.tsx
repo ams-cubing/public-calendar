@@ -60,7 +60,8 @@ export default async function Page() {
             <TableHeader>
               <TableRow>
                 <TableHead>Fechas</TableHead>
-                <TableHead>Nombre / Ubicación</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Ubicación</TableHead>
                 <TableHead>Semáforo</TableHead>
                 <TableHead>Estado Interno</TableHead>
                 <TableHead>Delegado</TableHead>
@@ -75,12 +76,10 @@ export default async function Page() {
                     {new Date(row.endDate).toISOString().split("T")[0]}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">
-                      {row.name || "Sin nombre"}
-                    </div>
-                    <div className="text-xs">
-                      {row.city}, {row.state.name}
-                    </div>
+                    {row.name || "Sin nombre"}
+                  </TableCell>
+                  <TableCell>
+                    {row.city}, {row.state.name}
                   </TableCell>
                   <TableCell>
                     <span

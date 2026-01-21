@@ -37,10 +37,13 @@ const createCompetitionSchema = z
       "unavailable",
     ]),
     statusInternal: z.enum([
-      "draft",
+      "asked_for_help",
       "looking_for_venue",
-      "ultimatum_sent",
-      "ready",
+      "venue_found",
+      "wca_approved",
+      "registration_open",
+      "celebrated",
+      "cancelled",
     ]),
     delegateWcaIds: z
       .array(z.string())
@@ -52,6 +55,7 @@ const createCompetitionSchema = z
     primaryOrganizerWcaId: z
       .string()
       .min(1, "Selecciona un organizador principal"),
+    notes: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "End date must be after start date",
@@ -104,6 +108,7 @@ export async function createCompetition(
         endDate: endDateStr!,
         statusPublic: validatedData.statusPublic,
         statusInternal: validatedData.statusInternal,
+        notes: validatedData.notes || null,
       })
       .returning();
 

@@ -9,6 +9,7 @@ import {
   UserIcon,
   PlusCircle,
   CalendarCheck,
+  Activity,
 } from "lucide-react";
 
 import { NavCalendar } from "@/components/nav-calendar";
@@ -65,6 +66,11 @@ const data = {
       url: "/panel/disponibilidad",
       icon: CalendarCheck,
     },
+    {
+      name: "Actividad",
+      url: "/panel/actividad",
+      icon: Activity,
+    }
   ],
 };
 

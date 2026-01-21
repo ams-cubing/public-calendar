@@ -20,6 +20,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { addMonths, subDays } from "date-fns";
 import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
 import type { Competition, Holiday, Region, State } from "@/db/schema";
+import { Badge } from "@workspace/ui/components/badge";
 
 interface FullCompetition extends Competition {
   state: State & { region: Region };
@@ -111,6 +112,19 @@ export function CalendarView({
       day: "numeric",
     });
   };
+
+  const getDaysCount = (startString: string, endString: string) => {
+    const [sY, sM, sD] = startString.split("-").map(Number);
+    const [eY, eM, eD] = endString.split("-").map(Number);
+    const start = new Date(sY!, sM! - 1, sD);
+    const end = new Date(eY!, eM! - 1, eD);
+    const diff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diff + 1); // inclusive
+  };
+
+  const selectedCompetitionDays = selectedCompetition
+    ? getDaysCount(selectedCompetition.startDate, selectedCompetition.endDate)
+    : null;
 
   const isDateAvailable = (day: number) => {
     const localDate = new Date(year, month, day);
@@ -246,8 +260,8 @@ export function CalendarView({
                     isToday
                       ? "text-primary" // Darker blue text for today
                       : !definitelyUnavailable &&
-                          !conditionallyUnavailable &&
-                          "text-gray-800 dark:text-slate-300", // Neutral text for available dates
+                      !conditionallyUnavailable &&
+                      "text-gray-800 dark:text-slate-300", // Neutral text for available dates
                   )}
                 >
                   {day}
@@ -305,8 +319,12 @@ export function CalendarView({
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                      <> - {formatDate(selectedCompetition.endDate)}</>
-                    )}
+                        <> - {formatDate(selectedCompetition.endDate)}</>
+                      )}
+                    <Badge className="ml-2">
+                      {selectedCompetitionDays}{" "}
+                      {selectedCompetitionDays === 1 ? "día" : "días"}
+                    </Badge>
                   </p>
                 </div>
               </div>

@@ -26,7 +26,7 @@ const updateCompetitionSchema = z
       error: (issue) =>
         issue.input === undefined ? "Fecha de fin requerida" : "Fecha inválida",
     }),
-    trelloUrl: z.string().url().optional().or(z.literal("")),
+    trelloUrl: z.url().optional().or(z.literal("")),
     wcaCompetitionUrl: z.url("URL inválida").optional().or(z.literal("")),
     capacity: z.number().min(2, "La capacidad debe ser al menos 2").optional(),
     statusPublic: z.enum([
@@ -38,10 +38,13 @@ const updateCompetitionSchema = z
       "unavailable",
     ]),
     statusInternal: z.enum([
-      "draft",
+      "asked_for_help",
       "looking_for_venue",
-      "ultimatum_sent",
-      "ready",
+      "venue_found",
+      "wca_approved",
+      "registration_open",
+      "celebrated",
+      "cancelled",
     ]),
     delegateWcaIds: z
       .array(z.string())
@@ -53,6 +56,7 @@ const updateCompetitionSchema = z
     primaryOrganizerWcaId: z
       .string()
       .min(1, "Selecciona un organizador principal"),
+    notes: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "End date must be after start date",
@@ -105,6 +109,7 @@ export async function updateCompetition(
         endDate: endDateStr!,
         statusPublic: validatedData.statusPublic,
         statusInternal: validatedData.statusInternal,
+        notes: validatedData.notes || null,
         updatedAt: new Date(),
       })
       .where(eq(competitions.id, competitionId));
