@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Home,
-  Trophy,
   CalendarPlus,
   Map,
   UserIcon,
@@ -33,11 +32,6 @@ const data = {
       name: "Inicio",
       url: "/",
       icon: Home,
-    },
-    {
-      name: "Mis competencias",
-      url: "/mis-competencias",
-      icon: Trophy,
     },
     {
       name: "Solicitar fecha",
@@ -102,7 +96,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavCalendar calendar={data.calendar} />
+        <NavCalendar calendar={data.calendar} user={user} />
         <NavDelegate delegate={data.delegate} user={user} />
       </SidebarContent>
       <SidebarFooter>

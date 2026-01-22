@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { Button } from "@workspace/ui/components/button";
+import { Button, buttonVariants } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import {
   Table,
@@ -38,7 +37,6 @@ import {
   getInternalStatusColor,
 } from "@/lib/utils";
 import { cn } from "@workspace/ui/lib/utils";
-import { buttonVariants } from "@workspace/ui/components/button";
 import type {
   CompetitionDelegate,
   Competition as CompetitionType,
@@ -46,6 +44,7 @@ import type {
   State,
   User,
 } from "@/db/schema";
+import Link from "next/link";
 
 type Delegates = CompetitionDelegate & {
   delegate: User;
@@ -247,6 +246,9 @@ export const columns: ColumnDef<Competition>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
+      // const router = useRouter();
+      // const [open, setOpen] = React.useState(false);
+
       const comp = row.original;
       return (
         <Link
@@ -256,6 +258,34 @@ export const columns: ColumnDef<Competition>[] = [
           <span className="sr-only">Editar</span>
           <Pencil size={16} />
         </Link>
+        // <>
+        //   <UltimatumDialog competitionId={comp.id} open={open} setOpen={setOpen} />
+        //   <DropdownMenu>
+        //     <DropdownMenuTrigger asChild>
+        //       <Button variant="ghost" className="h-8 w-8 p-0">
+        //         <span className="sr-only">Abrir menú</span>
+        //         <MoreHorizontal />
+        //       </Button>
+        //     </DropdownMenuTrigger>
+        //     <DropdownMenuContent align="end">
+        //       <DropdownMenuGroup>
+        //         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+        //         <DropdownMenuItem
+        //           onClick={() => router.push(`/panel/competencias/${comp.id}`)}
+        //         >
+        //           Editar
+        //         </DropdownMenuItem>
+        //       </DropdownMenuGroup>
+        //       <DropdownMenuGroup>
+        //         <DropdownMenuItem onClick={() => {
+        //           setOpen(true);
+        //         }}>
+        //           Enviar ultimátum
+        //         </DropdownMenuItem>
+        //       </DropdownMenuGroup>
+        //     </DropdownMenuContent>
+        //   </DropdownMenu>
+        // </>
       );
     },
   },

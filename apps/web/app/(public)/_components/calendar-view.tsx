@@ -7,6 +7,7 @@ import {
   MapPin,
   Calendar,
   Users,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -21,6 +22,7 @@ import { addMonths, subDays } from "date-fns";
 import { getPublicStatusColor, formatPublicStatus } from "@/lib/utils";
 import type { Competition, Holiday, Region, State } from "@/db/schema";
 import { Badge } from "@workspace/ui/components/badge";
+import Link from "next/link";
 
 interface FullCompetition extends Competition {
   state: State & { region: Region };
@@ -306,7 +308,23 @@ export function CalendarView({
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl">
-              Competencia en {selectedCompetition?.state.region.displayName}
+              {selectedCompetition?.statusPublic === "announced" ? (
+                selectedCompetition.wcaCompetitionUrl ? (
+                  <Link
+                    href={selectedCompetition.wcaCompetitionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline hover:text-primary flex items-center gap-1"
+                  >
+                    {selectedCompetition.name}
+                    <ExternalLink />
+                  </Link>
+                ) : (
+                  selectedCompetition.name
+                )
+              ) : (
+                `Competencia en ${selectedCompetition?.state.region.displayName}`
+              )}
             </DialogTitle>
             <DialogDescription>Detalles de la competencia</DialogDescription>
           </DialogHeader>

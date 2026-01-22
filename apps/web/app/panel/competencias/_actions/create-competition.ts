@@ -9,7 +9,10 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { Resend } from "resend";
 import { z } from "zod";
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const createCompetitionSchema = z
   .object({
@@ -154,6 +157,30 @@ export async function createCompetition(
         });
       }
     });
+
+    try {
+      const delegates = await db.query.user.findMany({
+        where: (u, { inArray }) =>
+          inArray(u.wcaId, validatedData.delegateWcaIds),
+        columns: { email: true, name: true },
+      });
+
+      for (const d of delegates) {
+        if (!d.email) continue;
+        try {
+          await resend.emails.send({
+            from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+            to: d.email,
+            subject: `Asignación como delegado: ${validatedData.city} (${startDateStr} - ${endDateStr})`,
+            html: `<p>Hola ${d.name},</p><p>Has sido asignado como delegado para una competencia en ${validatedData.city} (${startDateStr} - ${endDateStr}).</p><p>Revisa el panel de competencias para más detalles.</p>`,
+          });
+        } catch (err) {
+          console.error("Error sending delegate email via Resend:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching delegate emails:", err);
+    }
 
     return {
       success: true,

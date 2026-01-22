@@ -7,10 +7,13 @@ import {
   competitionOrganizers,
   logs,
 } from "@/db/schema";
+import { Resend } from "resend";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const updateCompetitionSchema = z
   .object({
@@ -100,6 +103,23 @@ export async function updateCompetition(
     const startDateStr = validatedData.startDate.toISOString().split("T")[0];
     const endDateStr = validatedData.endDate.toISOString().split("T")[0];
 
+    // Fetch existing delegate assignments so we can detect added/removed delegates
+    const existingDelegatesRows = await db.query.competitionDelegates.findMany({
+      where: (cd, { eq }) => eq(cd.competitionId, competitionId),
+      columns: { delegateWcaId: true },
+    });
+
+    const previousDelegateWcaIds = existingDelegatesRows.map(
+      (r) => r.delegateWcaId,
+    );
+    const newDelegateWcaIds = validatedData.delegateWcaIds;
+    const addedDelegateWcaIds = newDelegateWcaIds.filter(
+      (id) => !previousDelegateWcaIds.includes(id),
+    );
+    const removedDelegateWcaIds = previousDelegateWcaIds.filter(
+      (id) => !newDelegateWcaIds.includes(id),
+    );
+
     // Use a transaction for all DB changes
     await db.transaction(async (tx) => {
       // Update the competition
@@ -165,6 +185,60 @@ export async function updateCompetition(
         });
       }
     });
+
+    // Notify newly added delegates
+    try {
+      if (addedDelegateWcaIds.length > 0) {
+        const addedUsers = await db.query.user.findMany({
+          where: (u, { inArray }) => inArray(u.wcaId, addedDelegateWcaIds),
+          columns: { email: true, name: true },
+        });
+
+        for (const a of addedUsers) {
+          if (!a.email) continue;
+          try {
+            await resend.emails.send({
+              from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+              to: a.email,
+              subject: `Asignación como delegado: ${validatedData.city} (${startDateStr} - ${endDateStr})`,
+              html: `<p>Hola ${a.name},</p><p>Has sido asignado como delegado para la competencia en ${validatedData.city} (${startDateStr} - ${endDateStr}).</p><p>Revisa el panel de competencias para más detalles.</p>`,
+            });
+          } catch (err) {
+            console.error(
+              "Error sending added delegate email via Resend:",
+              err,
+            );
+          }
+        }
+      }
+
+      // Notify removed delegates
+      if (removedDelegateWcaIds.length > 0) {
+        const removedUsers = await db.query.user.findMany({
+          where: (u, { inArray }) => inArray(u.wcaId, removedDelegateWcaIds),
+          columns: { email: true, name: true },
+        });
+
+        for (const r of removedUsers) {
+          if (!r.email) continue;
+          try {
+            await resend.emails.send({
+              from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+              to: r.email,
+              subject: `Remoción como delegado: ${validatedData.city} (${startDateStr} - ${endDateStr})`,
+              html: `<p>Hola ${r.name},</p><p>Has sido removido como delegado de una competencia en ${validatedData.city} (${startDateStr} - ${endDateStr}).</p><p>Si crees que esto es un error, revisa el panel de competencias para más detalles.</p>`,
+            });
+          } catch (err) {
+            console.error(
+              "Error sending removed delegate email via Resend:",
+              err,
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error notifying delegates:", err);
+    }
 
     return {
       success: true,

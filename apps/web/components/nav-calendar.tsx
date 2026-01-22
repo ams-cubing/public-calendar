@@ -1,6 +1,6 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
+import { Trophy, type LucideIcon } from "lucide-react";
 
 import {
   SidebarGroup,
@@ -9,10 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
+import type { User } from "better-auth";
 
 export function NavCalendar({
+  user,
   calendar,
 }: {
+  user: User | undefined;
   calendar: {
     name: string;
     url: string;
@@ -33,6 +36,16 @@ export function NavCalendar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
+        {user && (
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/mis-competencias">
+                <Trophy />
+                <span>Mis competencias</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
       </SidebarMenu>
     </SidebarGroup>
   );

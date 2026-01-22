@@ -206,7 +206,7 @@ export function CompetitionForm({
           endDate: undefined,
           trelloUrl: "",
           wcaCompetitionUrl: "",
-          capacity: 0,
+          capacity: 10,
           statusPublic: "reserved",
           statusInternal: "looking_for_venue",
           notes: "",
@@ -306,7 +306,7 @@ export function CompetitionForm({
             <FormItem>
               <FormLabel>Nombre de la competencia</FormLabel>
               <FormControl>
-                <Input placeholder="Ej: Guadalajara Open 2025" {...field} />
+                <Input placeholder="Ej: Guadalajara Open 2026" {...field} />
               </FormControl>
               <FormDescription>
                 Déjalo en blanco si aún no tienes un nombre
@@ -468,7 +468,7 @@ export function CompetitionForm({
                 <Input
                   type="number"
                   placeholder="Número máximo de participantes"
-                  min={2}
+                  min={10}
                   {...field}
                   value={field.value ?? ""}
                   onChange={(e) => {
@@ -477,7 +477,7 @@ export function CompetitionForm({
                   }}
                 />
               </FormControl>
-              <FormDescription>Opcional. Mínimo 2</FormDescription>
+              <FormDescription>Opcional. Mínimo 10</FormDescription>
               <FormMessage />
             </FormItem>
           )}
