@@ -49,19 +49,18 @@ export function getPublicStatusColor(
 ): string {
   switch (status) {
     case "open":
-      return "bg-green-100 text-green-800 dark:bg-green-200 dark:text-green-900 hover:bg-green-200 dark:hover:bg-green-300";
+      return "bg-pink-300 dark:bg-pink-600 text-pink-800 dark:text-pink-900 hover:bg-pink-200 dark:hover:bg-pink-300";
     case "reserved":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-200 dark:text-blue-900 hover:bg-blue-200 dark:hover:bg-blue-300";
+      return "bg-yellow-300 dark:bg-yellow-600 text-yellow-800 dark:text-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-300";
     case "confirmed":
-      return "bg-indigo-100 text-indigo-800 dark:bg-indigo-200 dark:text-indigo-900 hover:bg-indigo-200 dark:hover:bg-indigo-300";
+      return "bg-orange-300 dark:bg-orange-600 text-orange-800 dark:text-orange-900 hover:bg-orange-200 dark:hover:bg-orange-300";
     case "announced":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-200 dark:text-purple-900 hover:bg-purple-200 dark:hover:bg-purple-300";
+      return "bg-green-300 dark:bg-green-600 text-green-800 dark:text-green-900 hover:bg-green-200 dark:hover:bg-green-300";
     case "suspended":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-200 dark:text-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-300";
+      return "bg-red-400 dark:bg-red-700 text-red-800 dark:text-red-900 hover:bg-red-300 dark:hover:bg-red-600";
     case "unavailable":
-      return "bg-red-100 text-red-800 dark:bg-red-200 dark:text-red-900 hover:bg-red-200 dark:hover:bg-red-300";
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-200 dark:text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-300";
+      return "bg-gray-400 dark:bg-gray-700 text-gray-800 dark:text-gray-900 hover:bg-gray-300 dark:hover:bg-gray-600";
   }
 }
 

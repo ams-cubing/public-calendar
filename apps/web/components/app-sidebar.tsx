@@ -34,14 +34,14 @@ const data = {
       icon: Home,
     },
     {
-      name: "Solicitar fecha",
-      url: "/solicitar-fecha",
-      icon: CalendarPlus,
-    },
-    {
       name: "Directorio",
       url: "/directorio",
       icon: Map,
+    },
+    {
+      name: "Solicitar fecha",
+      url: "/solicitar-fecha",
+      icon: CalendarPlus,
     },
   ],
   delegate: [
