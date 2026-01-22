@@ -6,8 +6,10 @@ import {
   competitionDelegates,
   competitionOrganizers,
   logs,
+  availability,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { and, gte, inArray, lte } from "drizzle-orm";
 import { headers } from "next/headers";
 import { Resend } from "resend";
 import { z } from "zod";
@@ -133,6 +135,17 @@ export async function createCompetition(
 
       if (delegateAssignments.length > 0) {
         await tx.insert(competitionDelegates).values(delegateAssignments);
+
+        // Remove availability entries for assigned delegates for the competition date range
+        await tx
+          .delete(availability)
+          .where(
+            and(
+              inArray(availability.userWcaId, validatedData.delegateWcaIds),
+              gte(availability.date, startDateStr!),
+              lte(availability.date, endDateStr!),
+            ),
+          );
       }
 
       const organizerAssignments = validatedData.organizerWcaIds.map(
