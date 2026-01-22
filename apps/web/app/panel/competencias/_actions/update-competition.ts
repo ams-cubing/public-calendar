@@ -5,6 +5,7 @@ import {
   competitions,
   competitionDelegates,
   competitionOrganizers,
+  logs,
 } from "@/db/schema";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
@@ -74,7 +75,11 @@ const updateCompetitionSchema = z
 export async function updateCompetition(
   competitionId: number,
   data: z.infer<typeof updateCompetitionSchema>,
-) {
+): Promise<{
+  success: boolean;
+  message: string;
+  competitionId?: number;
+}> {
   try {
     const headersList = await headers();
 
@@ -95,52 +100,71 @@ export async function updateCompetition(
     const startDateStr = validatedData.startDate.toISOString().split("T")[0];
     const endDateStr = validatedData.endDate.toISOString().split("T")[0];
 
-    // Update the competition
-    await db
-      .update(competitions)
-      .set({
-        name: validatedData.name || null,
-        city: validatedData.city,
-        stateId: validatedData.stateId,
-        trelloUrl: validatedData.trelloUrl || null,
-        wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
-        capacity: validatedData.capacity || 0,
-        startDate: startDateStr!,
-        endDate: endDateStr!,
-        statusPublic: validatedData.statusPublic,
-        statusInternal: validatedData.statusInternal,
-        notes: validatedData.notes || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(competitions.id, competitionId));
+    // Use a transaction for all DB changes
+    await db.transaction(async (tx) => {
+      // Update the competition
+      await tx
+        .update(competitions)
+        .set({
+          name: validatedData.name || null,
+          city: validatedData.city,
+          stateId: validatedData.stateId,
+          trelloUrl: validatedData.trelloUrl || null,
+          wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
+          capacity: validatedData.capacity || 0,
+          startDate: startDateStr!,
+          endDate: endDateStr!,
+          statusPublic: validatedData.statusPublic,
+          statusInternal: validatedData.statusInternal,
+          notes: validatedData.notes || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(competitions.id, competitionId));
 
-    // Delete existing delegate assignments
-    await db
-      .delete(competitionDelegates)
-      .where(eq(competitionDelegates.competitionId, competitionId));
+      // Delete existing delegate assignments
+      await tx
+        .delete(competitionDelegates)
+        .where(eq(competitionDelegates.competitionId, competitionId));
 
-    // Insert new delegate assignments
-    const delegateAssignments = validatedData.delegateWcaIds.map((wcaId) => ({
-      competitionId: competitionId,
-      delegateWcaId: wcaId,
-      isPrimary: wcaId === validatedData.primaryDelegateWcaId,
-    }));
+      // Insert new delegate assignments
+      const delegateAssignments = validatedData.delegateWcaIds.map((wcaId) => ({
+        competitionId: competitionId,
+        delegateWcaId: wcaId,
+        isPrimary: wcaId === validatedData.primaryDelegateWcaId,
+      }));
 
-    await db.insert(competitionDelegates).values(delegateAssignments);
+      if (delegateAssignments.length > 0) {
+        await tx.insert(competitionDelegates).values(delegateAssignments);
+      }
 
-    // Delete existing organizer assignments
-    await db
-      .delete(competitionOrganizers)
-      .where(eq(competitionOrganizers.competitionId, competitionId));
+      // Delete existing organizer assignments
+      await tx
+        .delete(competitionOrganizers)
+        .where(eq(competitionOrganizers.competitionId, competitionId));
 
-    // Insert new organizer assignments
-    const organizerAssignments = validatedData.organizerWcaIds.map((wcaId) => ({
-      competitionId: competitionId,
-      organizerWcaId: wcaId,
-      isPrimary: wcaId === validatedData.primaryOrganizerWcaId,
-    }));
+      // Insert new organizer assignments
+      const organizerAssignments = validatedData.organizerWcaIds.map(
+        (wcaId) => ({
+          competitionId: competitionId,
+          organizerWcaId: wcaId,
+          isPrimary: wcaId === validatedData.primaryOrganizerWcaId,
+        }),
+      );
 
-    await db.insert(competitionOrganizers).values(organizerAssignments);
+      if (organizerAssignments.length > 0) {
+        await tx.insert(competitionOrganizers).values(organizerAssignments);
+      }
+
+      if (session?.user?.id) {
+        await tx.insert(logs).values({
+          action: "update_competition",
+          targetType: "competition",
+          targetId: String(competitionId),
+          actorId: session.user.id,
+          details: validatedData,
+        });
+      }
+    });
 
     return {
       success: true,

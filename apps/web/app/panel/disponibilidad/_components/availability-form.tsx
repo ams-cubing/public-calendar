@@ -59,7 +59,7 @@ export function AvailabilityForm({
 
         if (result.success) {
           toast.success(
-            result.message || "Indisponibilidad registrada exitosamente",
+            result.message || "Disponibilidad registrada exitosamente",
           );
           form.reset({ dates: data.dates });
         } else {
@@ -80,7 +80,7 @@ export function AvailabilityForm({
           render={({ field }) => (
             <FormItem className="flex flex-col items-center">
               <FormLabel className="sr-only">
-                Fechas de Indisponibilidad
+                Fechas de disponibilidad
               </FormLabel>
               <div className="rounded-md border p-4 bg-popover">
                 <FormControl>
@@ -119,10 +119,10 @@ export function AvailabilityForm({
           <div className="text-sm text-muted-foreground text-center">
             {form.watch("dates")?.length > 0
               ? `${form.watch("dates").length} fecha(s) seleccionada(s)`
-              : "Selecciona los días que no estarás disponible"}
+              : "Selecciona los días que estarás disponible"}
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Guardando..." : "Registrar Indisponibilidad"}
+            {isPending ? "Guardando..." : "Registrar Disponibilidad"}
           </Button>
         </div>
       </form>

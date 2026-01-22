@@ -138,6 +138,18 @@ export const internalStatusEnum = pgEnum("internal_status", [
   "cancelled", // Competencia cancelada
 ]);
 
+export const logActionEnum = pgEnum("log_action", [
+  "create_competition",
+  "update_competition",
+  "submit_availability",
+]);
+
+export const logTargetTypeEnum = pgEnum("log_target_type", [
+  "competition",
+  "availability",
+  "user",
+]);
+
 export const states = pgTable("state", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
@@ -198,6 +210,8 @@ export const competitionDelegates = pgTable("competition_delegate", {
   isPrimary: boolean("is_primary").default(false).notNull(),
 });
 
+export type CompetitionDelegate = InferSelectModel<typeof competitionDelegates>;
+
 export const competitionOrganizers = pgTable("competition_organizer", {
   competitionId: serial("competition_id")
     .notNull()
@@ -238,8 +252,8 @@ export const logs = pgTable(
   "log",
   {
     id: serial("id").primaryKey(),
-    action: text("action").notNull(),
-    targetType: text("target_type").notNull(),
+    action: logActionEnum("action").notNull(),
+    targetType: logTargetTypeEnum("target_type").notNull(),
     targetId: text("target_id").notNull(),
     actorId: text("actor_id")
       .notNull()
@@ -252,6 +266,8 @@ export const logs = pgTable(
     index("log_actor_idx").on(table.actorId),
   ],
 );
+
+export type Logs = InferSelectModel<typeof logs>;
 
 export const ultimatumStatusEnum = pgEnum("ultimatum_status", [
   "active",

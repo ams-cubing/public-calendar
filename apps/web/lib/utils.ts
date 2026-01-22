@@ -1,6 +1,8 @@
 import { Competition } from "@/db/schema";
 
-export function formatPublicStatus(status: Competition["statusPublic"]): string {
+export function formatPublicStatus(
+  status: Competition["statusPublic"],
+): string {
   switch (status) {
     case "open":
       return "Fecha Abierta";
@@ -19,7 +21,9 @@ export function formatPublicStatus(status: Competition["statusPublic"]): string 
   }
 }
 
-export function formatInternalStatus(status: Competition["statusInternal"]): string {
+export function formatInternalStatus(
+  status: Competition["statusInternal"],
+): string {
   switch (status) {
     case "asked_for_help":
       return "Solicitando ayuda";
@@ -40,7 +44,9 @@ export function formatInternalStatus(status: Competition["statusInternal"]): str
   }
 }
 
-export function getPublicStatusColor(status: Competition["statusPublic"]): string {
+export function getPublicStatusColor(
+  status: Competition["statusPublic"],
+): string {
   switch (status) {
     case "open":
       return "bg-green-100 text-green-800 dark:bg-green-200 dark:text-green-900 hover:bg-green-200 dark:hover:bg-green-300";
@@ -59,7 +65,9 @@ export function getPublicStatusColor(status: Competition["statusPublic"]): strin
   }
 }
 
-export function getInternalStatusColor(status: Competition["statusInternal"]): string {
+export function getInternalStatusColor(
+  status: Competition["statusInternal"],
+): string {
   switch (status) {
     case "asked_for_help":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-200 dark:text-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-300";

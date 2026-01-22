@@ -5,6 +5,7 @@ import {
   competitions,
   competitionDelegates,
   competitionOrganizers,
+  logs,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -72,7 +73,11 @@ const createCompetitionSchema = z
 
 export async function createCompetition(
   data: z.infer<typeof createCompetitionSchema>,
-) {
+): Promise<{
+  success: boolean;
+  message: string;
+  competitionId?: number;
+}> {
   try {
     const headersList = await headers();
 
@@ -93,46 +98,67 @@ export async function createCompetition(
     const startDateStr = validatedData.startDate.toISOString().split("T")[0];
     const endDateStr = validatedData.endDate.toISOString().split("T")[0];
 
-    // Create the competition
-    const [newCompetition] = await db
-      .insert(competitions)
-      .values({
-        name: validatedData.name || null,
-        city: validatedData.city,
-        stateId: validatedData.stateId,
-        requestedBy: session.user.wcaId,
-        trelloUrl: validatedData.trelloUrl || null,
-        wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
-        capacity: validatedData.capacity || 0,
-        startDate: startDateStr!,
-        endDate: endDateStr!,
-        statusPublic: validatedData.statusPublic,
-        statusInternal: validatedData.statusInternal,
-        notes: validatedData.notes || null,
-      })
-      .returning();
+    let newCompetitionId: number | undefined;
 
-    // Assign all selected delegates
-    const delegateAssignments = validatedData.delegateWcaIds.map((wcaId) => ({
-      competitionId: newCompetition!.id,
-      delegateWcaId: wcaId,
-      isPrimary: wcaId === validatedData.primaryDelegateWcaId,
-    }));
+    // All DB changes in a transaction
+    await db.transaction(async (tx) => {
+      const [newCompetition] = await tx
+        .insert(competitions)
+        .values({
+          name: validatedData.name || null,
+          city: validatedData.city,
+          stateId: validatedData.stateId,
+          requestedBy: session.user.wcaId,
+          trelloUrl: validatedData.trelloUrl || null,
+          wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
+          capacity: validatedData.capacity || 0,
+          startDate: startDateStr!,
+          endDate: endDateStr!,
+          statusPublic: validatedData.statusPublic,
+          statusInternal: validatedData.statusInternal,
+          notes: validatedData.notes || null,
+        })
+        .returning();
 
-    await db.insert(competitionDelegates).values(delegateAssignments);
+      newCompetitionId = newCompetition!.id;
 
-    // Assign all selected organizers
-    const organizerAssignments = validatedData.organizerWcaIds.map((wcaId) => ({
-      competitionId: newCompetition!.id,
-      organizerWcaId: wcaId,
-      isPrimary: wcaId === validatedData.primaryOrganizerWcaId,
-    }));
+      const delegateAssignments = validatedData.delegateWcaIds.map((wcaId) => ({
+        competitionId: newCompetitionId,
+        delegateWcaId: wcaId,
+        isPrimary: wcaId === validatedData.primaryDelegateWcaId,
+      }));
 
-    await db.insert(competitionOrganizers).values(organizerAssignments);
+      if (delegateAssignments.length > 0) {
+        await tx.insert(competitionDelegates).values(delegateAssignments);
+      }
+
+      const organizerAssignments = validatedData.organizerWcaIds.map(
+        (wcaId) => ({
+          competitionId: newCompetitionId,
+          organizerWcaId: wcaId,
+          isPrimary: wcaId === validatedData.primaryOrganizerWcaId,
+        }),
+      );
+
+      if (organizerAssignments.length > 0) {
+        await tx.insert(competitionOrganizers).values(organizerAssignments);
+      }
+
+      if (session?.user?.id) {
+        await tx.insert(logs).values({
+          action: "create_competition",
+          targetType: "competition",
+          targetId: String(newCompetitionId),
+          actorId: session.user.id,
+          details: validatedData,
+        });
+      }
+    });
 
     return {
       success: true,
       message: "Competencia creada exitosamente",
+      competitionId: newCompetitionId,
     };
   } catch (error) {
     console.error("Error creating competition:", error);

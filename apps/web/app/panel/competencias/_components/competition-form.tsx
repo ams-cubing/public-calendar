@@ -44,6 +44,24 @@ import { MEXICAN_STATES } from "@/lib/constants";
 import { Competition } from "@/db/schema";
 import { Textarea } from "@workspace/ui/components/textarea";
 
+function getPublicStatusColor(status: Competition["statusPublic"]): string {
+  switch (status) {
+    case "open":
+      return "bg-pink-300 dark:bg-pink-600";
+    case "reserved":
+      return "bg-yellow-300 dark:bg-yellow-600";
+    case "confirmed":
+      return "bg-orange-300 dark:bg-orange-600";
+    case "announced":
+      return "bg-green-300 dark:bg-green-600";
+    case "suspended":
+      return "bg-red-400 dark:bg-red-700";
+    case "unavailable":
+    default:
+      return "bg-gray-400 dark:bg-gray-700";
+  }
+}
+
 const dateRequestSchema = z
   .object({
     name: z
@@ -484,6 +502,14 @@ export function CompetitionForm({
                   <SelectContent>
                     {PUBLIC_STATUSES.map((status) => (
                       <SelectItem key={status.value} value={status.value}>
+                        <span
+                          className={cn(
+                            "rounded-full size-2",
+                            getPublicStatusColor(
+                              status.value as Competition["statusPublic"],
+                            ),
+                          )}
+                        />
                         {status.label}
                       </SelectItem>
                     ))}
@@ -670,7 +696,7 @@ export function CompetitionForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="notes"
@@ -678,7 +704,10 @@ export function CompetitionForm({
             <FormItem>
               <FormLabel>Notas</FormLabel>
               <FormControl>
-                <Textarea placeholder="Ej. Información adicional sobre la competencia" {...field} />
+                <Textarea
+                  placeholder="Ej. Información adicional sobre la competencia"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

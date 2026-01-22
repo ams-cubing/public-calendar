@@ -65,7 +65,7 @@ export default async function Page(props: PageProps) {
                 new Date(
                   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                   recentRequestsCount[0]?.createdAt?.getTime()! +
-                  7 * 24 * 60 * 60 * 1000,
+                    7 * 24 * 60 * 60 * 1000,
                 ),
                 new Date(),
                 {
@@ -86,47 +86,47 @@ export default async function Page(props: PageProps) {
 
   const delegates = stateFilter
     ? await db
-      .select({
-        name: user.name,
-        email: user.email,
-      })
-      .from(user)
-      .innerJoin(regions, eq(user.regionId, regions.id))
-      .innerJoin(states, eq(regions.id, states.regionId))
-      .where(eq(states.id, stateFilter))
+        .select({
+          name: user.name,
+          email: user.email,
+        })
+        .from(user)
+        .innerJoin(regions, eq(user.regionId, regions.id))
+        .innerJoin(states, eq(regions.id, states.regionId))
+        .where(eq(states.id, stateFilter))
     : [];
 
   const availabilityData = stateFilter
     ? delegates.length > 0
       ? await db
-        .select({
-          date: availability.date,
-        })
-        .from(availability)
-        .innerJoin(user, eq(availability.userWcaId, user.wcaId))
-        .innerJoin(regions, eq(user.regionId, regions.id))
-        .innerJoin(states, eq(regions.id, states.regionId))
-        .where(eq(states.id, stateFilter))
-        .orderBy(availability.date)
-        .groupBy(availability.date)
+          .select({
+            date: availability.date,
+          })
+          .from(availability)
+          .innerJoin(user, eq(availability.userWcaId, user.wcaId))
+          .innerJoin(regions, eq(user.regionId, regions.id))
+          .innerJoin(states, eq(regions.id, states.regionId))
+          .where(eq(states.id, stateFilter))
+          .orderBy(availability.date)
+          .groupBy(availability.date)
       : await db
-        .select({
-          date: availability.date,
-        })
-        .from(availability)
-        .orderBy(availability.date)
-        .groupBy(availability.date)
+          .select({
+            date: availability.date,
+          })
+          .from(availability)
+          .orderBy(availability.date)
+          .groupBy(availability.date)
     : [];
 
   const regionsData = stateFilter
     ? await db
-      .select({
-        regionName: regions.displayName,
-      })
-      .from(regions)
-      .innerJoin(states, eq(regions.id, states.regionId))
-      .where(eq(states.id, stateFilter))
-      .limit(1)
+        .select({
+          regionName: regions.displayName,
+        })
+        .from(regions)
+        .innerJoin(states, eq(regions.id, states.regionId))
+        .where(eq(states.id, stateFilter))
+        .limit(1)
     : [];
 
   const regionName = regionsData.length > 0 ? regionsData[0]?.regionName : null;
@@ -173,7 +173,10 @@ export default async function Page(props: PageProps) {
                       <div className="text-sm">
                         <div className="font-medium">{delegate.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          <a href={`mailto:${delegate.email}`} className="hover:underline">
+                          <a
+                            href={`mailto:${delegate.email}`}
+                            className="hover:underline"
+                          >
                             <Mail className="inline-block mr-1 h-3 w-3" />
                             {delegate.email}
                           </a>

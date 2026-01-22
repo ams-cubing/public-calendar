@@ -118,7 +118,9 @@ export function CalendarView({
     const [eY, eM, eD] = endString.split("-").map(Number);
     const start = new Date(sY!, sM! - 1, sD);
     const end = new Date(eY!, eM! - 1, eD);
-    const diff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.floor(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return Math.max(1, diff + 1); // inclusive
   };
 
@@ -260,8 +262,8 @@ export function CalendarView({
                     isToday
                       ? "text-primary" // Darker blue text for today
                       : !definitelyUnavailable &&
-                      !conditionallyUnavailable &&
-                      "text-gray-800 dark:text-slate-300", // Neutral text for available dates
+                          !conditionallyUnavailable &&
+                          "text-gray-800 dark:text-slate-300", // Neutral text for available dates
                   )}
                 >
                   {day}
@@ -319,8 +321,8 @@ export function CalendarView({
                     {formatDate(selectedCompetition.startDate)}
                     {selectedCompetition.startDate !==
                       selectedCompetition.endDate && (
-                        <> - {formatDate(selectedCompetition.endDate)}</>
-                      )}
+                      <> - {formatDate(selectedCompetition.endDate)}</>
+                    )}
                     <Badge className="ml-2">
                       {selectedCompetitionDays}{" "}
                       {selectedCompetitionDays === 1 ? "día" : "días"}

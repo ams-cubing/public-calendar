@@ -70,7 +70,7 @@ const data = {
       name: "Actividad",
       url: "/panel/actividad",
       icon: Activity,
-    }
+    },
   ],
 };
 

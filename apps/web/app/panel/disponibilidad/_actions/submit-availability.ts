@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { availability } from "@/db/schema";
+import { availability, logs } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -64,6 +64,19 @@ export async function submitAvailability(data: { dates: Date[] }) {
             date: d,
           })),
         );
+      }
+
+      if (session?.user?.id) {
+        await tx.insert(logs).values({
+          action: "submit_availability",
+          targetType: "availability",
+          targetId: userWcaId,
+          actorId: session.user.id,
+          details: {
+            inserted: toInsert,
+            deleted: toDelete,
+          },
+        });
       }
     });
 
