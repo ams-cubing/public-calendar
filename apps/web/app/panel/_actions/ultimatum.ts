@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { competitionOrganizers, competitions, logs, user } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { Resend } from "resend";
+import { revalidatePath } from "next/cache";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -34,7 +35,7 @@ export async function sendUltimatum(
       await tx
         .update(competitions)
         .set({
-          ultimatumSentAt: new Date(),
+          ultimatumSetTo: validatedData.deadline,
         })
         .where(eq(competitions.id, validatedData.competitionId));
 
@@ -75,6 +76,8 @@ export async function sendUltimatum(
         `,
       });
     }
+
+    revalidatePath("/panel");
   } catch {
     return { success: false, message: "Database error" };
   }

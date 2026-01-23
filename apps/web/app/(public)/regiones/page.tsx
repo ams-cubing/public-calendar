@@ -32,13 +32,12 @@ export default async function Page() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-4 text-3xl font-bold">Acerca de</h1>
+      <h1 className="mb-4 text-3xl font-bold">Regiones en México</h1>
       <section className="mt-8">
-        <h2 className="mb-4 text-2xl font-semibold">Regiones en México</h2>
         <div className="flex justify-center">
           <Image
             src="/mapa.png"
-            alt="Acerca de"
+            alt="Mapa de regiones en México"
             width={736}
             height={491}
             className="object-cover"

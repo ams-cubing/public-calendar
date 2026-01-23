@@ -259,24 +259,24 @@ export const columns: ColumnDef<Competition>[] = [
     },
   },
   {
-    accessorKey: "ultimatumSentAt",
+    accessorKey: "ultimatumSetTo",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Ultimátum Enviado <ArrowUpDown />
+        Ultimátum <ArrowUpDown />
       </Button>
     ),
     cell: ({ row }) => {
-      const v = row.getValue("ultimatumSentAt") as string | null;
+      const v = row.getValue("ultimatumSetTo") as string | null;
       if (!v) {
         return (
-          <span className="text-muted-foreground text-sm">No enviado</span>
+          <span className="text-muted-foreground text-sm">No establecido</span>
         );
       }
       const d = new Date(v);
-      return <div className="font-mono">{d.toLocaleString()}</div>;
+      return <div className="font-mono">{d.toISOString().split("T")[0]}</div>;
     },
   },
   {
@@ -310,6 +310,7 @@ export const columns: ColumnDef<Competition>[] = [
         <>
           <UltimatumDialog
             competitionId={comp.id}
+            competitionLastDate={new Date(comp.endDate)}
             open={open}
             setOpen={setOpen}
           />
@@ -334,6 +335,10 @@ export const columns: ColumnDef<Competition>[] = [
                   onClick={() => {
                     setOpen(true);
                   }}
+                  disabled={
+                    comp.statusPublic === "announced" ||
+                    comp.statusPublic === "suspended"
+                  }
                 >
                   Enviar ultimátum
                 </DropdownMenuItem>

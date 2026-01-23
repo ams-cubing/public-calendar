@@ -51,10 +51,8 @@ const updateCompetitionSchema = z
       "celebrated",
       "cancelled",
     ]),
-    delegateWcaIds: z
-      .array(z.string())
-      .min(1, "Selecciona al menos un delegado"),
-    primaryDelegateWcaId: z.string().min(1, "Selecciona un delegado principal"),
+    delegateWcaIds: z.array(z.string()).optional().default([]),
+    primaryDelegateWcaId: z.string().optional().or(z.literal("")),
     organizerWcaIds: z
       .array(z.string())
       .min(1, "Selecciona al menos un organizador"),
@@ -67,10 +65,21 @@ const updateCompetitionSchema = z
     message: "End date must be after start date",
     path: ["endDate"],
   })
-  .refine((data) => data.delegateWcaIds.includes(data.primaryDelegateWcaId), {
-    message: "El delegado principal debe estar en la lista de delegados",
-    path: ["primaryDelegateWcaId"],
-  })
+  // If there are delegates selected, primaryDelegateWcaId must be set and included in the list
+  .refine(
+    (data) => {
+      const delegates = data.delegateWcaIds || [];
+      if (delegates.length === 0) return true;
+      return (
+        !!data.primaryDelegateWcaId &&
+        delegates.includes(data.primaryDelegateWcaId)
+      );
+    },
+    {
+      message: "Selecciona un delegado principal",
+      path: ["primaryDelegateWcaId"],
+    },
+  )
   .refine((data) => data.organizerWcaIds.includes(data.primaryOrganizerWcaId), {
     message: "El organizador principal debe estar en la lista de organizadores",
     path: ["primaryOrganizerWcaId"],

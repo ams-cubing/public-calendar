@@ -80,7 +80,11 @@ export const columns: ColumnDef<LogRow>[] = [
         Acción <ArrowUpDown />
       </Button>
     ),
-    cell: ({ row }) => <div>{formatAction(row.getValue("action"))}</div>,
+    cell: ({ row }) => (
+      <div className="font-semibold">
+        {formatAction(row.getValue("action"))}
+      </div>
+    ),
   },
   {
     accessorKey: "targetLabel",

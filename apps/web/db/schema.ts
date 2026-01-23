@@ -196,7 +196,7 @@ export const competitions = pgTable("competition", {
   notes: text("notes"),
 
   trelloAssignedAt: timestamp("trello_assigned_at"),
-  ultimatumSentAt: timestamp("ultimatum_sent_at"),
+  ultimatumSetTo: timestamp("ultimatum_set_to"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

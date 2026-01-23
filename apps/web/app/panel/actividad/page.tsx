@@ -64,7 +64,7 @@ export default async function Page() {
   function renderTarget(l: (typeof logsData)[number]) {
     if (l.targetType === "competition") {
       const comp = competitionsMap.get(Number(l.targetId));
-      const label = comp?.name ?? `${l.targetType} / ${l.targetId}`;
+      const label = comp?.name ?? `Competencia sin nombre en ${comp?.city}`;
       return label;
     }
 

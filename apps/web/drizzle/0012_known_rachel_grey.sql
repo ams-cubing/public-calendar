@@ -1,0 +1,1 @@
+ALTER TABLE "competition" RENAME COLUMN "ultimatum_sent_at" TO "ultimatum_set_to";

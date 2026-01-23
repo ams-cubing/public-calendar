@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Resolver, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@workspace/ui/components/button";
@@ -62,7 +62,7 @@ function getPublicStatusColor(status: Competition["statusPublic"]): string {
   }
 }
 
-const dateRequestSchema = z
+const competitionSchema = z
   .object({
     name: z
       .string()
@@ -102,10 +102,9 @@ const dateRequestSchema = z
       "cancelled",
     ]),
     notes: z.string().optional().or(z.literal("")),
-    delegateWcaIds: z
-      .array(z.string())
-      .min(1, "Selecciona al menos un delegado"),
-    primaryDelegateWcaId: z.string().min(1, "Selecciona un delegado principal"),
+    // delegates are optional; if any are provided, a primary must be selected
+    delegateWcaIds: z.array(z.string()).optional().default([]),
+    primaryDelegateWcaId: z.string().optional().or(z.literal("")),
     organizerWcaIds: z
       .array(z.string())
       .min(1, "Selecciona al menos un organizador"),
@@ -117,16 +116,27 @@ const dateRequestSchema = z
     message: "La fecha de fin debe ser posterior o igual a la fecha de inicio",
     path: ["endDate"],
   })
-  .refine((data) => data.delegateWcaIds.includes(data.primaryDelegateWcaId), {
-    message: "El delegado principal debe estar en la lista de delegados",
-    path: ["primaryDelegateWcaId"],
-  })
+  // If there are delegates selected, primaryDelegateWcaId must be set and included in the list
+  .refine(
+    (data) => {
+      const delegates = data.delegateWcaIds || [];
+      if (delegates.length === 0) return true;
+      return (
+        !!data.primaryDelegateWcaId &&
+        delegates.includes(data.primaryDelegateWcaId)
+      );
+    },
+    {
+      message: "Selecciona un delegado principal",
+      path: ["primaryDelegateWcaId"],
+    },
+  )
   .refine((data) => data.organizerWcaIds.includes(data.primaryOrganizerWcaId), {
     message: "El organizador principal debe estar en la lista de organizadores",
     path: ["primaryOrganizerWcaId"],
   });
 
-type DateRequestFormValues = z.infer<typeof dateRequestSchema>;
+type CompetitionFormValues = z.infer<typeof competitionSchema>;
 
 const PUBLIC_STATUSES = [
   // { value: "open", label: "Abierto" },
@@ -175,8 +185,10 @@ export function CompetitionForm({
 
   const router = useRouter();
 
-  const form = useForm<DateRequestFormValues>({
-    resolver: zodResolver(dateRequestSchema),
+  const form = useForm<CompetitionFormValues>({
+    resolver: zodResolver(
+      competitionSchema,
+    ) as unknown as Resolver<CompetitionFormValues>,
     defaultValues: competition
       ? {
           name: competition.name || "",
@@ -267,7 +279,7 @@ export function CompetitionForm({
     }
   };
 
-  async function onSubmit(data: DateRequestFormValues) {
+  async function onSubmit(data: CompetitionFormValues) {
     startTransition(async () => {
       try {
         const result = isEditing
