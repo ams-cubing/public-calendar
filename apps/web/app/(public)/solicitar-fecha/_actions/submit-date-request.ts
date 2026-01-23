@@ -190,7 +190,7 @@ export async function submitDateRequest(
     try {
       if (delegateInRegion) {
         await resend.emails.send({
-          from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+          from: "Asociación Mexicana de Speedcubing <no-reply@amscubing.org>",
           to: delegateInRegion?.email,
           subject: `Nueva asignación: ${newCompetition?.city} (${startDateStr} - ${endDateStr})`,
           html: `
@@ -206,7 +206,7 @@ export async function submitDateRequest(
 
     try {
       await resend.emails.send({
-        from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+        from: "Asociación Mexicana de Speedcubing <no-reply@amscubing.org>",
         // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         to: session?.user?.email!,
         subject: `Fecha solicitada en ${newCompetition?.city} (${startDateStr} - ${endDateStr})`,

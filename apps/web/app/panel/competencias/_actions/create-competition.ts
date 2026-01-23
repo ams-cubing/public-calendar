@@ -196,7 +196,7 @@ export async function createCompetition(
         if (!d.email) continue;
         try {
           await resend.emails.send({
-            from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+            from: "Asociación Mexicana de Speedcubing <no-reply@amscubing.org>",
             to: d.email,
             subject: `Asignación como delegado: ${validatedData.city} (${startDateStr} - ${endDateStr})`,
             html: `<p>Hola ${d.name},</p><p>Has sido asignado como delegado para una competencia en ${validatedData.city} (${startDateStr} - ${endDateStr}).</p><p>Revisa el panel de competencias para más detalles.</p>`,

@@ -62,9 +62,14 @@ export async function sendUltimatum(
       );
 
     for (const organizer of organizers) {
+      const email = organizer?.email;
+      if (!email || email.includes("@ams.placeholder")) {
+        continue;
+      }
+
       await resend.emails.send({
-        from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
-        to: organizer?.email,
+        from: "Asociación Mexicana de Speedcubing <no-reply@amscubing.org>",
+        to: email,
         subject: "Ultimátum enviado para tu competencia",
         html: `
           <p>Hola,</p>

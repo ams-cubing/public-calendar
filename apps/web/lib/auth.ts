@@ -119,6 +119,7 @@ export const auth = betterAuth({
               regionId: profile.regionId as string | null,
             };
           },
+          overrideUserInfo: true,
         },
       ],
     }),
