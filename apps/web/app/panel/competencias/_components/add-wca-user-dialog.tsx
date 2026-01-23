@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,32 +27,31 @@ export function AddWCAUserDialog({
   onUserAdded,
 }: AddWCAUserDialogProps) {
   const [wcaId, setWcaId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsLoading(true);
 
-    try {
-      const result = await fetchAndCreateWCAUser(wcaId.trim().toUpperCase());
+    startTransition(async () => {
+      try {
+        const result = await fetchAndCreateWCAUser(wcaId.trim().toUpperCase());
 
-      if (result.success && result.user) {
-        toast.success(result.message);
-        onUserAdded({
-          wcaId: result.user.wcaId,
-          name: result.user.name,
-        });
-        setWcaId("");
-        onOpenChange(false);
-      } else {
-        toast.error(result.message);
+        if (result.success && result.user) {
+          toast.success(result.message);
+          onUserAdded({
+            wcaId: result.user.wcaId,
+            name: result.user.name,
+          });
+          setWcaId("");
+          onOpenChange(false);
+        } else {
+          toast.error(result.message);
+        }
+      } catch {
+        toast.error("Error al agregar usuario");
       }
-    } catch {
-      toast.error("Error al agregar usuario");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -84,8 +83,8 @@ export function AddWCAUserDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !wcaId.trim()}>
-              {isLoading ? "Agregando..." : "Agregar"}
+            <Button type="submit" disabled={pending || !wcaId.trim()}>
+              {pending ? "Agregando..." : "Agregar"}
             </Button>
           </DialogFooter>
         </form>

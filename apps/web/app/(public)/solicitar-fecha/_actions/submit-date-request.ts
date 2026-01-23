@@ -8,9 +8,10 @@ import {
   competitionDelegates,
   competitionOrganizers,
   availability,
+  logs,
 } from "@/db/schema";
 import { z } from "zod";
-import { eq, and, lte, gte, inArray } from "drizzle-orm";
+import { eq, and, lte, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Resend } from "resend";
@@ -64,64 +65,62 @@ export async function submitDateRequest(
       };
     }
 
-    // 2. Find delegates in the same region
-    const delegatesInRegion = await db.query.user.findMany({
-      where: and(eq(user.regionId, state.regionId), eq(user.role, "delegate")),
-    });
-
-    // 3. Check delegate availability for the requested dates
+    // 2. Find a delegate availble for that region
     const startDateStr = validatedData.startDate.toISOString().split("T")[0];
     const endDateStr = validatedData.endDate.toISOString().split("T")[0];
+    const start = new Date(startDateStr!);
+    const end = new Date(endDateStr!);
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const daysCount =
+      Math.floor((end.getTime() - start.getTime()) / oneDayMs) + 1;
 
-    const msPerDay = 24 * 60 * 60 * 1000;
-    const expectedDays =
-      Math.floor(
-        (validatedData.endDate.getTime() - validatedData.startDate.getTime()) /
-          msPerDay,
-      ) + 1;
+    let candidates = await db.query.user.findMany({
+      where: and(eq(user.regionId, state.regionId), eq(user.role, "delegate")),
+      columns: { wcaId: true, name: true, email: true },
+    });
 
-    let assignedDelegate = null;
+    if (candidates.length === 0) {
+      candidates = await db.query.user.findMany({
+        where: eq(user.role, "delegate"),
+        columns: { wcaId: true, name: true, email: true },
+      });
+    }
 
-    for (const delegate of delegatesInRegion) {
-      // New: ensure delegate has availability entries for every date in the range
-      const availabilities = await db.query.availability.findMany({
-        where: and(
-          eq(availability.userWcaId, delegate.wcaId),
-          gte(availability.date, startDateStr!),
-          lte(availability.date, endDateStr!),
-        ),
+    let delegateInRegion = null;
+    for (const c of candidates) {
+      // availability rows for the full range
+      const availRows = await db.query.availability.findMany({
+        where: (a, { and, eq, gte, lte }) =>
+          and(
+            eq(a.userWcaId, c.wcaId),
+            gte(a.date, startDateStr!),
+            lte(a.date, endDateStr!),
+          ),
+        columns: { date: true },
       });
 
-      if (availabilities.length < expectedDays) {
-        // Delegate is not available for all requested days
-        continue;
-      }
+      if (availRows.length !== daysCount) continue;
 
-      // Check if delegate is already assigned to another competition during these dates
-      const delegateCompetitionIds = await db
-        .select({ competitionId: competitionDelegates.competitionId })
+      // ensure no overlapping competitions assigned in the same range
+      const overlapping = await db
+        .select()
         .from(competitionDelegates)
-        .where(eq(competitionDelegates.delegateWcaId, delegate.wcaId));
-
-      if (delegateCompetitionIds.length > 0) {
-        const conflictingCompetition = await db.query.competitions.findFirst({
-          where: and(
-            inArray(
-              competitions.id,
-              delegateCompetitionIds.map((d) => d.competitionId),
-            ),
-            // Check for date overlap: competitions that start before our end date AND end after our start date
+        .innerJoin(
+          competitions,
+          eq(competitionDelegates.competitionId, competitions.id),
+        )
+        .where(
+          and(
+            eq(competitionDelegates.delegateWcaId, c.wcaId),
             lte(competitions.startDate, endDateStr!),
             gte(competitions.endDate, startDateStr!),
           ),
-        });
+        )
+        .limit(1);
 
-        if (conflictingCompetition) {
-          continue; // Skip this delegate, they have a conflicting competition
-        }
-      }
+      if (overlapping.length > 0) continue;
 
-      assignedDelegate = delegate;
+      delegateInRegion = c;
       break;
     }
 
@@ -142,13 +141,13 @@ export async function submitDateRequest(
           })
           .returning();
 
-        if (!assignedDelegate) {
+        if (!delegateInRegion) {
           return { comp };
         }
 
         await tx.insert(competitionDelegates).values({
           competitionId: comp?.id,
-          delegateWcaId: assignedDelegate.wcaId,
+          delegateWcaId: delegateInRegion.wcaId,
           isPrimary: true,
         });
 
@@ -156,7 +155,7 @@ export async function submitDateRequest(
           .delete(availability)
           .where(
             and(
-              eq(availability.userWcaId, assignedDelegate.wcaId),
+              eq(availability.userWcaId, delegateInRegion.wcaId),
               gte(availability.date, startDateStr!),
               lte(availability.date, endDateStr!),
             ),
@@ -170,6 +169,15 @@ export async function submitDateRequest(
           });
         }
 
+        await tx.insert(logs).values({
+          action: "create_competition",
+          targetType: "competition",
+          targetId: String(comp?.id),
+          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+          actorId: session?.user.id!,
+          details: validatedData,
+        });
+
         return { comp };
       });
 
@@ -179,32 +187,44 @@ export async function submitDateRequest(
       throw err;
     }
 
-    if (!assignedDelegate) {
-      return {
-        success: true,
-        message:
-          "Solicitud creada. No hay delegados disponibles, se asignará manualmente.",
-      };
+    try {
+      if (delegateInRegion) {
+        await resend.emails.send({
+          from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+          to: delegateInRegion?.email,
+          subject: `Nueva asignación: ${newCompetition?.city} (${startDateStr} - ${endDateStr})`,
+          html: `
+          <p>Hola ${delegateInRegion?.name},</p>
+          <p>Se te ha asignado como delegado para la competencia en ${newCompetition?.city} (${startDateStr} - ${endDateStr}).</p>
+          <p>Mira los detalles en el panel de competencias.</p>
+        `,
+        });
+      }
+    } catch (err) {
+      console.error("Error sending delegate email via Resend:", err);
     }
 
     try {
       await resend.emails.send({
         from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
-        to: assignedDelegate.email,
-        subject: `Nueva asignación: ${newCompetition?.city} (${startDateStr} - ${endDateStr})`,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        to: session?.user?.email!,
+        subject: `Fecha solicitada en ${newCompetition?.city} (${startDateStr} - ${endDateStr})`,
         html: `
-          <p>Hola ${assignedDelegate.name},</p>
-          <p>Se te ha asignado como delegado para la competencia en ${newCompetition?.city} (${startDateStr} - ${endDateStr}).</p>
-          <p>Mira los detalles en el panel de competencias.</p>
+          <p>Hola ${session?.user?.name},</p>
+          <p>Tu solicitud de fecha para una competencia en ${newCompetition?.city} (${startDateStr} - ${endDateStr}) ha sido creada exitosamente.</p>
+          <p>El delegado asignado es: ${delegateInRegion ? delegateInRegion?.name : "Aún no se ha asignado un delegado"}</p>
+          <p>Puedes contactarlo en: ${delegateInRegion ? delegateInRegion?.email : "Pendiente"}</p>
+          <p>Revisa los detalles en el panel de competencias.</p>
         `,
       });
     } catch (err) {
-      console.error("Error sending delegate email via Resend:", err);
+      console.error("Error sending organizer email via Resend:", err);
     }
 
     return {
       success: true,
-      message: `Solicitud creada exitosamente. Delegado asignado: ${assignedDelegate.name}`,
+      message: `Solicitud creada exitosamente. Delegado asignado: ${delegateInRegion ? delegateInRegion.name : "Aún no se ha asignado un delegado"}`,
     };
   } catch (error) {
     console.error("Error submitting date request:", error);

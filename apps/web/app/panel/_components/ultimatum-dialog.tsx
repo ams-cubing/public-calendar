@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, startTransition } from "react";
+import React, { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,9 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { toast } from "sonner";
-import { createUltimatum } from "../_actions/ultimatum";
+import { sendUltimatum } from "../_actions/ultimatum";
 import { Label } from "@workspace/ui/components/label";
+import { Textarea } from "@workspace/ui/components/textarea";
 
 export function UltimatumDialog({
   competitionId,
@@ -26,16 +27,14 @@ export function UltimatumDialog({
 }) {
   const [deadline, setDeadline] = useState("");
   const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pending, startTransition] = useTransition();
 
-  const submit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     startTransition(async () => {
       try {
-        const res = await createUltimatum({
+        const res = await sendUltimatum({
           competitionId,
-          organizerWcaId: "ORGANIZER_WCA_ID",
           deadline: new Date(deadline),
           message,
         });
@@ -47,8 +46,6 @@ export function UltimatumDialog({
         }
       } catch {
         toast.error("Error");
-      } finally {
-        setIsSubmitting(false);
       }
     });
   };
@@ -56,7 +53,7 @@ export function UltimatumDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
-        <form onSubmit={submit}>
+        <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle>Enviar ultimátum</DialogTitle>
           </DialogHeader>
@@ -68,16 +65,18 @@ export function UltimatumDialog({
               onChange={(e) => setDeadline(e.target.value)}
               required
             />
-            <Label>Mensaje (opcional)</Label>
-            <Input
+            <Label>Mensaje</Label>
+            <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
           </div>
           <DialogFooter>
-            <DialogClose type="button">Cancelar</DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Enviando..." : "Enviar"}
+            <DialogClose type="button" asChild>
+              <Button variant="ghost">Cancelar</Button>
+            </DialogClose>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Enviando..." : "Enviar"}
             </Button>
           </DialogFooter>
         </form>

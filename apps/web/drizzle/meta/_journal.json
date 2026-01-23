@@ -71,6 +71,20 @@
       "when": 1769051262867,
       "tag": "0009_massive_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769129662268,
+      "tag": "0010_steady_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1769135490548,
+      "tag": "0011_smart_beyonder",
+      "breakpoints": true
     }
   ]
 }

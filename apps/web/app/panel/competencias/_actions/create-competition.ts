@@ -105,6 +105,9 @@ export async function createCompetition(
 
     let newCompetitionId: number | undefined;
 
+    const trelloUrl = validatedData.trelloUrl;
+    const trelloAssignedAt = trelloUrl ? new Date() : null;
+
     // All DB changes in a transaction
     await db.transaction(async (tx) => {
       const [newCompetition] = await tx
@@ -121,6 +124,7 @@ export async function createCompetition(
           endDate: endDateStr!,
           statusPublic: validatedData.statusPublic,
           statusInternal: validatedData.statusInternal,
+          trelloAssignedAt: trelloAssignedAt,
           notes: validatedData.notes || null,
         })
         .returning();

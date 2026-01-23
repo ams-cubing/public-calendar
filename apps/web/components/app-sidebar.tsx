@@ -34,8 +34,8 @@ const data = {
       icon: Home,
     },
     {
-      name: "Directorio",
-      url: "/directorio",
+      name: "Regiones",
+      url: "/regiones",
       icon: Map,
     },
     {

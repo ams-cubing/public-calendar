@@ -141,13 +141,14 @@ export const internalStatusEnum = pgEnum("internal_status", [
 export const logActionEnum = pgEnum("log_action", [
   "create_competition",
   "update_competition",
+  "delete_competition",
+  "send_ultimatum",
   "submit_availability",
 ]);
 
 export const logTargetTypeEnum = pgEnum("log_target_type", [
   "competition",
   "availability",
-  "user",
 ]);
 
 export const states = pgTable("state", {
@@ -193,6 +194,9 @@ export const competitions = pgTable("competition", {
     .notNull(),
 
   notes: text("notes"),
+
+  trelloAssignedAt: timestamp("trello_assigned_at"),
+  ultimatumSentAt: timestamp("ultimatum_sent_at"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -269,36 +273,6 @@ export const logs = pgTable(
 
 export type Logs = InferSelectModel<typeof logs>;
 
-export const ultimatumStatusEnum = pgEnum("ultimatum_status", [
-  "active",
-  "expired",
-  "resolved",
-]);
-
-export const ultimatums = pgTable(
-  "ultimatum",
-  {
-    id: serial("id").primaryKey(),
-    competitionId: serial("competition_id")
-      .notNull()
-      .references(() => competitions.id, { onDelete: "cascade" }),
-    organizerWcaId: text("organizer_wca_id")
-      .notNull()
-      .references(() => user.wcaId, { onDelete: "cascade" }),
-    sentBy: text("sent_by").references(() => user.id),
-    sentAt: timestamp("sent_at").defaultNow().notNull(),
-    deadline: date("deadline").notNull(),
-    status: ultimatumStatusEnum("status").default("active").notNull(),
-    message: text("message"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => [
-    index("ultimatum_competition_idx").on(table.competitionId),
-    index("ultimatum_organizer_idx").on(table.organizerWcaId),
-  ],
-);
-
 export const statesRelations = relations(states, ({ one, many }) => ({
   region: one(regions, {
     fields: [states.regionId],
@@ -321,7 +295,6 @@ export const competitionsRelations = relations(
     }),
     delegates: many(competitionDelegates),
     organizers: many(competitionOrganizers),
-    ultimatums: many(ultimatums), // <-- new relation
   }),
 );
 
@@ -356,21 +329,6 @@ export const competitionOrganizersRelations = relations(
 export const logsRelations = relations(logs, ({ one }) => ({
   actor: one(user, {
     fields: [logs.actorId],
-    references: [user.id],
-  }),
-}));
-
-export const ultimatumRelations = relations(ultimatums, ({ one }) => ({
-  competition: one(competitions, {
-    fields: [ultimatums.competitionId],
-    references: [competitions.id],
-  }),
-  organizer: one(user, {
-    fields: [ultimatums.organizerWcaId],
-    references: [user.wcaId],
-  }),
-  sender: one(user, {
-    fields: [ultimatums.sentBy],
     references: [user.id],
   }),
 }));

@@ -1,4 +1,4 @@
-import { Competition } from "@/db/schema";
+import type { Competition, Logs } from "@/db/schema";
 
 export function formatPublicStatus(
   status: Competition["statusPublic"],
@@ -86,3 +86,20 @@ export function getInternalStatusColor(
       return "bg-gray-100 text-gray-800 dark:bg-gray-200 dark:text-gray-900 hover:bg-gray-200 dark:hover:bg-gray-300";
   }
 }
+
+export const formatAction = (action: Logs["action"]) => {
+  switch (action) {
+    case "create_competition":
+      return "Creó una competencia";
+    case "update_competition":
+      return "Actualizó una competencia";
+    case "delete_competition":
+      return "Eliminó una competencia";
+    case "send_ultimatum":
+      return "Envió un ultimátum";
+    case "submit_availability":
+      return "Actualizó su disponibilidad";
+    default:
+      return action;
+  }
+};

@@ -1,6 +1,9 @@
 import { db } from "@/db";
 import { CompetitionForm } from "../_components/competition-form";
 import { notFound } from "next/navigation";
+import { DeleteCompetitionDialog } from "../_components/delete-competition";
+import { formatAction } from "@/lib/utils";
+import { DetailsDialog } from "./_components/details-dialog";
 
 type Params = Promise<{ id: string }>;
 
@@ -36,7 +39,6 @@ export default async function Page({
     orderBy: (user, { asc }) => asc(user.name),
   });
 
-  // Transform competition data to match the expected format
   const formattedCompetition = {
     ...competition,
     delegates: competition.delegates.map((d) => ({
@@ -48,6 +50,12 @@ export default async function Page({
       isPrimary: o.isPrimary,
     })),
   };
+
+  const competitionLogs = await db.query.logs.findMany({
+    where: (log, { eq }) => eq(log.targetId, String(competition.id)),
+    with: { actor: true },
+    orderBy: (log, { desc }) => desc(log.createdAt),
+  });
 
   return (
     <main className="p-6">
@@ -62,6 +70,28 @@ export default async function Page({
           delegates={delegates}
           competition={formattedCompetition}
         />
+        <DeleteCompetitionDialog competitionId={competition.id} />
+
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Registro de Actividades</h2>
+          <ul className="space-y-2">
+            {competitionLogs.map((log) => (
+              <li key={log.id} className="p-4 border rounded-md">
+                <p className="text-xs text-muted-foreground">
+                  {new Date(log.createdAt).toLocaleString()}
+                </p>
+                <p>
+                  {log.actor
+                    ? `${log.actor.name} (${log.actor.wcaId})`
+                    : "Usuario eliminado"}{" "}
+                  realizó la siguiente acción:{" "}
+                  <strong>{formatAction(log.action)}</strong>
+                </p>
+                <DetailsDialog details={log.details} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </main>
   );

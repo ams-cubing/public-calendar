@@ -25,6 +25,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { DetailsDialog } from "./details-dialog";
+import { formatAction } from "@/lib/utils";
 
 type LogRow = {
   id: number | string;
@@ -36,19 +37,6 @@ type LogRow = {
   targetLabel?: string;
   details: unknown;
   createdAt: string | Date;
-};
-
-const formatAction = (action: string) => {
-  switch (action) {
-    case "create_competition":
-      return "Creó una competencia";
-    case "update_competition":
-      return "Actualizó una competencia";
-    case "submit_availability":
-      return "Actualizó su disponibilidad";
-    default:
-      return action;
-  }
 };
 
 export const columns: ColumnDef<LogRow>[] = [
@@ -92,9 +80,7 @@ export const columns: ColumnDef<LogRow>[] = [
         Acción <ArrowUpDown />
       </Button>
     ),
-    cell: ({ row }) => (
-      <div>{formatAction(row.getValue("action") as string)}</div>
-    ),
+    cell: ({ row }) => <div>{formatAction(row.getValue("action"))}</div>,
   },
   {
     accessorKey: "targetLabel",

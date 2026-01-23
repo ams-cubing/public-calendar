@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -83,7 +83,7 @@ export function DateRequestForm({
 
   const availableDateKeys = new Set(availableDates.map(makeDateKey));
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -114,22 +114,21 @@ export function DateRequestForm({
   const stateSelected = Boolean(form.watch("stateId"));
 
   async function onSubmit(data: DateRequestFormValues) {
-    setIsSubmitting(true);
-    try {
-      const result = await submitDateRequest(data);
+    startTransition(async () => {
+      try {
+        const result = await submitDateRequest(data);
 
-      if (result.success) {
-        toast.success(result.message || "Solicitud enviada exitosamente");
+        if (result.success) {
+          toast.success(result.message || "Solicitud enviada exitosamente");
 
-        router.push("/");
-      } else {
-        toast.error(result.message || "Error al enviar la solicitud");
+          router.push("/");
+        } else {
+          toast.error(result.message || "Error al enviar la solicitud");
+        }
+      } catch {
+        toast.error("Error al enviar la solicitud");
       }
-    } catch {
-      toast.error("Error al enviar la solicitud");
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   }
 
   return (
@@ -270,9 +269,9 @@ export function DateRequestForm({
         <Button
           type="submit"
           className="w-full"
-          disabled={isSubmitting || !stateSelected}
+          disabled={pending || !stateSelected}
         >
-          {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
+          {pending ? "Enviando..." : "Enviar Solicitud"}
         </Button>
       </form>
     </Form>

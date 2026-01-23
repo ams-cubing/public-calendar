@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+
 "use client";
 
 import * as React from "react";
@@ -23,7 +25,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, PlusCircle } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -45,6 +47,18 @@ import type {
   User,
 } from "@/db/schema";
 import Link from "next/link";
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+} from "@workspace/ui/components/dropdown-menu";
+import { UltimatumDialog } from "./ultimatum-dialog";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Delegates = CompetitionDelegate & {
   delegate: User;
@@ -224,6 +238,48 @@ export const columns: ColumnDef<Competition>[] = [
     },
   },
   {
+    accessorKey: "trelloAssignedAt",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Trello Asignado <ArrowUpDown />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const v = row.getValue("trelloAssignedAt") as string | null;
+      if (!v) {
+        return (
+          <span className="text-muted-foreground text-sm">No asignado</span>
+        );
+      }
+      const d = new Date(v);
+      return <div className="font-mono">{d.toLocaleString()}</div>;
+    },
+  },
+  {
+    accessorKey: "ultimatumSentAt",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Ultimátum Enviado <ArrowUpDown />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const v = row.getValue("ultimatumSentAt") as string | null;
+      if (!v) {
+        return (
+          <span className="text-muted-foreground text-sm">No enviado</span>
+        );
+      }
+      const d = new Date(v);
+      return <div className="font-mono">{d.toLocaleString()}</div>;
+    },
+  },
+  {
     accessorKey: "notes",
     header: ({ column }) => (
       <Button
@@ -246,46 +302,45 @@ export const columns: ColumnDef<Competition>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      // const router = useRouter();
-      // const [open, setOpen] = React.useState(false);
+      const router = useRouter();
+      const [open, setOpen] = useState(false);
 
       const comp = row.original;
       return (
-        <Link
-          href={`/panel/competencias/${comp.id}`}
-          className={buttonVariants({ variant: "ghost", size: "icon" })}
-        >
-          <span className="sr-only">Editar</span>
-          <Pencil size={16} />
-        </Link>
-        // <>
-        //   <UltimatumDialog competitionId={comp.id} open={open} setOpen={setOpen} />
-        //   <DropdownMenu>
-        //     <DropdownMenuTrigger asChild>
-        //       <Button variant="ghost" className="h-8 w-8 p-0">
-        //         <span className="sr-only">Abrir menú</span>
-        //         <MoreHorizontal />
-        //       </Button>
-        //     </DropdownMenuTrigger>
-        //     <DropdownMenuContent align="end">
-        //       <DropdownMenuGroup>
-        //         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-        //         <DropdownMenuItem
-        //           onClick={() => router.push(`/panel/competencias/${comp.id}`)}
-        //         >
-        //           Editar
-        //         </DropdownMenuItem>
-        //       </DropdownMenuGroup>
-        //       <DropdownMenuGroup>
-        //         <DropdownMenuItem onClick={() => {
-        //           setOpen(true);
-        //         }}>
-        //           Enviar ultimátum
-        //         </DropdownMenuItem>
-        //       </DropdownMenuGroup>
-        //     </DropdownMenuContent>
-        //   </DropdownMenu>
-        // </>
+        <>
+          <UltimatumDialog
+            competitionId={comp.id}
+            open={open}
+            setOpen={setOpen}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => router.push(`/panel/competencias/${comp.id}`)}
+                >
+                  Editar
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setOpen(true);
+                  }}
+                >
+                  Enviar ultimátum
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
       );
     },
   },
@@ -319,9 +374,11 @@ export function DataTable({ data }: { data: Competition[] }) {
     },
   });
 
+  const isMobile = useIsMobile();
+
   return (
     <div className="w-full">
-      <div className="flex items-center py-4">
+      <div className="flex items-center justify-between py-4">
         <Input
           placeholder="Filtrar por nombre..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -330,6 +387,17 @@ export function DataTable({ data }: { data: Competition[] }) {
           }
           className="max-w-sm"
         />
+
+        <Link
+          href="/panel/competencias/nueva"
+          className={buttonVariants({
+            variant: "default",
+            size: isMobile ? "icon" : "default",
+          })}
+        >
+          <PlusCircle size={18} />
+          {isMobile ? null : <span>Nueva Competencia</span>}
+        </Link>
       </div>
 
       <div className="overflow-hidden rounded-md border">

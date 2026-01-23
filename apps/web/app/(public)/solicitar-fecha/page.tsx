@@ -142,13 +142,6 @@ export default async function Page(props: PageProps) {
           </p>
         </div>
         <DateRequestForm availability={availabilityData} />
-        {availabilityData.length === 0 && stateFilter && (
-          <div className="text-sm text-muted-foreground">
-            No hay fechas disponibles para la región seleccionada. Por favor,
-            considere seleccionar otra región o contactar a un delegado
-            directamente.
-          </div>
-        )}
         {stateFilter && (
           <section className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
             <h2 className="text-lg font-semibold mb-2">
@@ -160,9 +153,17 @@ export default async function Page(props: PageProps) {
 
             {delegates.length > 0 ? (
               <div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Mostrando fechas disponibles de los delegados de dicha región:
-                </p>
+                {availabilityData.length === 0 && stateFilter ? (
+                  <div className="text-sm text-destructive mb-4">
+                    No hay fechas disponibles para la región seleccionada. Por
+                    favor, contacta a un delegado directamente.
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Mostrando fechas disponibles de los delegados de dicha
+                    región:
+                  </p>
+                )}
 
                 <ul className="grid gap-2">
                   {delegates.map((delegate) => (
@@ -178,7 +179,7 @@ export default async function Page(props: PageProps) {
                             className="hover:underline"
                           >
                             <Mail className="inline-block mr-1 h-3 w-3" />
-                            {delegate.email}
+                            Haz clic aquí para contactar
                           </a>
                         </div>
                       </div>

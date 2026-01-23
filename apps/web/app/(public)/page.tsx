@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { eq, asc } from "drizzle-orm";
 import { CalendarView } from "./_components/calendar-view";
 import { RegionFilter } from "./_components/region-filter";
-import { competitions, regions, states } from "@/db/schema";
+import { availability, competitions, regions, states, user } from "@/db/schema";
 import { SemaphoreLegend } from "./_components/semaphore-legend";
 
 interface PageProps {
@@ -40,12 +40,16 @@ export default async function Page(props: PageProps) {
     };
   });
 
-  const availability = await db.query.availability.findMany({
-    orderBy: (t, { asc }) => [asc(t.date)],
-    columns: {
-      date: true,
-    },
-  });
+  const avail = await db
+    .selectDistinct({
+      date: availability.date,
+    })
+    .from(availability)
+    .innerJoin(user, eq(availability.userWcaId, user.wcaId))
+    .innerJoin(regions, eq(user.regionId, regions.id))
+    .innerJoin(states, eq(regions.id, states.regionId))
+    .where(regionFilter ? eq(regions.id, regionFilter) : undefined)
+    .orderBy(asc(availability.date));
 
   const holidays = await db.query.holidays.findMany();
 
@@ -60,7 +64,7 @@ export default async function Page(props: PageProps) {
         <CalendarView
           competitions={comps}
           holidays={holidays}
-          availability={availability}
+          availability={avail}
         />
         <SemaphoreLegend />
       </div>

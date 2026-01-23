@@ -1,19 +1,24 @@
 "use server";
 
-// import { db } from "@/db";
-// import { ultimatums } from "@/db/schema";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { db } from "@/db";
+import { competitionOrganizers, competitions, logs, user } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const createUltimatumSchema = z.object({
   competitionId: z.number(),
-  organizerWcaId: z.string().min(1),
   deadline: z.date(),
   message: z.string().optional().or(z.literal("")),
 });
 
-export async function createUltimatum(data: z.infer<typeof createUltimatumSchema>) {
+export async function sendUltimatum(
+  data: z.infer<typeof createUltimatumSchema>,
+) {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
 
@@ -21,18 +26,58 @@ export async function createUltimatum(data: z.infer<typeof createUltimatumSchema
     return { success: false, message: "Unauthorized" };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const validated = createUltimatumSchema.parse(data);
+  // Validate input
+  const validatedData = createUltimatumSchema.parse(data);
 
-  // const [row] = await db.insert(ultimatums).values({
-  //   id: undefined,
-  //   competitionId: validated.competitionId,
-  //   organizerWcaId: validated.organizerWcaId,
-  //   sentBy: session.user.id,
-  //   deadline: validated.deadline.toISOString().split("T")[0],
-  //   message: validated.message || null,
-  // }).returning();
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(competitions)
+        .set({
+          ultimatumSentAt: new Date(),
+        })
+        .where(eq(competitions.id, validatedData.competitionId));
 
-  // return { success: true, ultimatum: row };
+      await tx.insert(logs).values({
+        action: "send_ultimatum",
+        targetType: "competition",
+        targetId: String(validatedData.competitionId),
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        actorId: session?.user.id!,
+        details: validatedData,
+      });
+    });
+
+    const organizers = await db
+      .select({
+        email: user.email,
+      })
+      .from(competitionOrganizers)
+      .innerJoin(user, eq(user.wcaId, competitionOrganizers.organizerWcaId))
+      .where(
+        and(
+          eq(competitionOrganizers.competitionId, validatedData.competitionId),
+        ),
+      );
+
+    for (const organizer of organizers) {
+      await resend.emails.send({
+        from: "Asociación Mexicana de Speedcubing <no-reply@cubingmexico.net>",
+        to: organizer?.email,
+        subject: "Ultimátum enviado para tu competencia",
+        html: `
+          <p>Hola,</p>
+          <p>Se ha enviado un ultimátum para una de tus competencias.</p>
+          <p>Fecha límite: ${validatedData.deadline.toLocaleDateString()}</p>
+          <p>${validatedData.message || "Por favor, asegúrate de cumplir con los requisitos antes de la fecha límite."}</p>
+          <p>Saludos,</p>
+          <p>Equipo de la Asociación Mexicana de Speedcubing</p>
+        `,
+      });
+    }
+  } catch {
+    return { success: false, message: "Database error" };
+  }
+
   return { success: true };
 }

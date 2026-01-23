@@ -104,6 +104,15 @@ export async function updateCompetition(
     const startDateStr = validatedData.startDate.toISOString().split("T")[0];
     const endDateStr = validatedData.endDate.toISOString().split("T")[0];
 
+    // Fetch existing trelloUrl to detect changes
+    const existingCompetition = await db.query.competitions.findFirst({
+      where: (c, { eq }) => eq(c.id, competitionId),
+      columns: { trelloUrl: true, trelloAssignedAt: true },
+    });
+
+    const newTrelloUrl = validatedData.trelloUrl || null;
+    const trelloUrlChanged = existingCompetition?.trelloUrl !== newTrelloUrl;
+
     // Fetch existing delegate assignments so we can detect added/removed delegates
     const existingDelegatesRows = await db.query.competitionDelegates.findMany({
       where: (cd, { eq }) => eq(cd.competitionId, competitionId),
@@ -124,22 +133,30 @@ export async function updateCompetition(
     // Use a transaction for all DB changes
     await db.transaction(async (tx) => {
       // Update the competition
+      const updatePayload = {
+        name: validatedData.name || null,
+        city: validatedData.city,
+        stateId: validatedData.stateId,
+        trelloUrl: newTrelloUrl,
+        wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
+        capacity: validatedData.capacity || 0,
+        startDate: startDateStr!,
+        endDate: endDateStr!,
+        statusPublic: validatedData.statusPublic,
+        statusInternal: validatedData.statusInternal,
+        trelloAssignedAt: existingCompetition?.trelloAssignedAt,
+        notes: validatedData.notes || null,
+        updatedAt: new Date(),
+      };
+
+      // If trelloUrl changed, set trelloAssignedAt to now
+      if (trelloUrlChanged) {
+        updatePayload.trelloAssignedAt = new Date();
+      }
+
       await tx
         .update(competitions)
-        .set({
-          name: validatedData.name || null,
-          city: validatedData.city,
-          stateId: validatedData.stateId,
-          trelloUrl: validatedData.trelloUrl || null,
-          wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
-          capacity: validatedData.capacity || 0,
-          startDate: startDateStr!,
-          endDate: endDateStr!,
-          statusPublic: validatedData.statusPublic,
-          statusInternal: validatedData.statusInternal,
-          notes: validatedData.notes || null,
-          updatedAt: new Date(),
-        })
+        .set(updatePayload)
         .where(eq(competitions.id, competitionId));
 
       // Delete existing delegate assignments

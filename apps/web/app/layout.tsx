@@ -56,14 +56,18 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
+        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
       >
         <Providers>
           <SidebarProvider>
             <AppSidebar user={normalizedUser} />
-            <SidebarInset className="flex flex-col min-h-screen">
+            <SidebarInset>
               <Header />
-              <main className="flex-1">{children}</main>
+              <div className="flex flex-1 flex-col">
+                <div className="@container/main flex flex-1 flex-col gap-2">
+                  {children}
+                </div>
+              </div>
               <Footer />
             </SidebarInset>
           </SidebarProvider>

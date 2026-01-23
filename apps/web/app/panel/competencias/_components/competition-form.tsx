@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -165,7 +165,7 @@ export function CompetitionForm({
   delegates: { wcaId: string; name: string; regionId: string | null }[];
   competition?: FullCompetition;
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pending, startTransition] = useTransition();
   const [selectedOrganizers, setSelectedOrganizers] = useState<
     { wcaId: string; name: string }[]
   >([]);
@@ -268,32 +268,31 @@ export function CompetitionForm({
   };
 
   async function onSubmit(data: DateRequestFormValues) {
-    setIsSubmitting(true);
-    try {
-      const result = isEditing
-        ? await updateCompetition(competition.id, data)
-        : await createCompetition(data);
+    startTransition(async () => {
+      try {
+        const result = isEditing
+          ? await updateCompetition(competition.id, data)
+          : await createCompetition(data);
 
-      if (result.success) {
-        toast.success(
-          result.message ||
-            `Competencia ${isEditing ? "actualizada" : "creada"} exitosamente`,
-        );
+        if (result.success) {
+          toast.success(
+            result.message ||
+              `Competencia ${isEditing ? "actualizada" : "creada"} exitosamente`,
+          );
 
-        router.push("/panel");
-      } else {
+          router.push("/panel");
+        } else {
+          toast.error(
+            result.message ||
+              `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
+          );
+        }
+      } catch {
         toast.error(
-          result.message ||
-            `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
+          `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
         );
       }
-    } catch {
-      toast.error(
-        `Error al ${isEditing ? "actualizar" : "crear"} la competencia`,
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   }
 
   return (
@@ -714,8 +713,8 @@ export function CompetitionForm({
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending
             ? isEditing
               ? "Actualizando..."
               : "Creando..."
