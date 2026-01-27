@@ -47,7 +47,7 @@ export const auth = betterAuth({
         unique: true,
       },
       role: {
-        type: ["delegate", "organizer", "user"],
+        type: ["delegate", "user"],
         required: true,
         defaultValue: "user",
         input: false,
