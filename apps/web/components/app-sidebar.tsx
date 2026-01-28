@@ -81,7 +81,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="https://amscubing.org/">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <div className="bg-primary flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Image src="/icon.png" alt="Logo" width={24} height={24} />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">

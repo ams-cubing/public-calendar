@@ -102,7 +102,7 @@ export const auth = betterAuth({
 
               wcaId: data.me.wca_id,
               role,
-              regionId: null,
+              // regionId: null,
             };
           },
           mapProfileToUser: (profile: Record<string, unknown>) => {
