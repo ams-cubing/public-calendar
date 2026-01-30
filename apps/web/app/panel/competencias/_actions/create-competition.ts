@@ -126,7 +126,7 @@ export async function createCompetition(
           name: validatedData.name || null,
           city: validatedData.city,
           stateId: validatedData.stateId,
-          requestedBy: session.user.wcaId,
+          requestedBy: null,
           trelloUrl: validatedData.trelloUrl || null,
           wcaCompetitionUrl: validatedData.wcaCompetitionUrl || null,
           capacity: validatedData.capacity || 0,
