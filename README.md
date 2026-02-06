@@ -45,14 +45,8 @@ pnpm --filter @workspace/web dev
 
 ## Estructura relevante
 
-- apps/web — aplicación Next.js
-  - apps/web/app — rutas y componentes de la app
-  - apps/web/public/icon.png — logo usado en la app (colócalo aquí para que se muestre en el README y la UI)
+- apps/web — app calendario público
 - packages/ui — componentes compartidos
-
-## Colocar el logo AMS
-
-Guarda el archivo del logo como `apps/web/public/icon.png`. El README y la interfaz ya apuntan a `apps/web/public/icon.png` (ver [AppSidebar](apps/web/components/app-sidebar.tsx)).
 
 ## Contribuir
 
